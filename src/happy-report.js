@@ -1,3 +1,5 @@
+const Ajax = require('./ajax')
+
 /**
  * HappyPerformance
  */
@@ -119,7 +121,7 @@ class HappyPerformance {
 
         // 拦截Ajax
         if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {
-            
+            this.handleAjax()
         }
     }
 
@@ -321,31 +323,174 @@ class HappyPerformance {
     }
 
     /**
-     * 处理Ajax
+     * 处理ajax
      */
     handleAjax(){
+        Ajax({
+            onreadystatechange: (xhr) => {
+                if (xhr.readyState === 4) {
+                    setTimeout(() => {
+                        const { goingType } = this.config
+                        if (goingType === 'load') return
+                        goingType = 'readychange'
 
+                        this.getAjaxTime('readychange')
+
+                        if (xhr.status < 200 || xhr.status > 300) {
+                            xhr.method = xhr.args.method
+                            this.ajaxResponse(xhr)
+                        }
+                    }, 600)
+                }
+            },
+            onerror: (xhr) => {
+                this.getAjaxTime('error')
+                if (xhr.args && xhr.args.length) {
+                    xhr.method = xhr.args.method
+                    xhr.responseURL = xhr.args.url
+                    xhr.statusText = 'ajax请求路径错误!'
+                }
+                this.ajaxResponse(xhr)
+            },
+            onload: (xhr) => {
+                if (xhr.readyState === 4) {
+                    const { goingType } = this.config
+                    if (goingType === 'readychange') return
+                    goingType = 'load'
+                    this.getAjaxTime('load')
+                    if (xhr.status < 200 || xhr.status > 300) {
+                        xhr.method = xhr.args.method
+                        this.ajaxResponse(xhr)
+                    }
+                }
+            },
+            open: (arg, xhr) => {
+                if (this.options.filterUrl && this.options.filterUrl.length) {
+                    let begin = false
+                    this.options.filterUrl.forEach(item => { if (arg[1].indexOf(item) != -1) begin = true })
+                    if (begin) return
+                }
+
+                const result = { url: arg[1], method: arg[0] || 'GET', type: 'xmlhttprequest' }
+                this.args = result
+
+                this.clearPerformance()
+                this.config.ajaxMsg.push(result)
+                this.config.ajaxLength = this.config.ajaxLength + 1;
+                this.config.haveAjax = true
+            }
+        })
     }
 
     /**
      * fetch参数
      */
     fetchArg(){
+        const result = { method: 'GET', type: 'fetchrequest' }
+        const args = Array.prototype.slice.apply(arg)
 
+        if (!args || !args.length) return result;
+        try {
+            if (args.length === 1) {
+                if (typeof (args[0]) === 'string') {
+                    result.url = args[0]
+                } else if (typeof (args[0]) === 'object') {
+                    result.url = args[0].url
+                    result.method = args[0].method
+                }
+            } else {
+                result.url = args[0]
+                result.method = args[1].method
+                result.type = args[1].type
+            }
+        } catch (err) { }
+        return result
     }
 
     /**
      * 清理Performance
      */
     clearPerformance(){
+        if (!window.performance && !window.performance.clearResourceTimings) return
+        const { haveAjax, haveFetch, ajaxLength, fetLength } = this.config
+        if (haveAjax && haveFetch && ajaxLength == 0 && fetLength == 0) {
+            clear()
+        } else if (!haveAjax && haveFetch && fetLength == 0) {
+            clear()
+        } else if (haveAjax && !haveFetch && ajaxLength == 0) {
+            clear()
+        }
+    }
 
+    /**
+     * 清楚Performance
+     */
+    clear() {
+        performance.clearResourceTimings();
+        this.config.performance = {}
+        this.config.errorList = []
+        this.config.preUrl = ''
+        this.config.resourceList = ''
+        this.config.page = window.location.href
     }
 
     /**
      * 获取Fetch的时间
      */
     getFetchTime(){
+        this.config.fetchNumber += 1
+        if (this.config.fetLength === this.config.fetchNumber) {
+            if (type == 'success') {
+                console.log('fetch success')
+            } else {
+                console.log('fetch error')
+            }
+            this.config.fetchNumber = this.config.fetLength = 0
+            this.fetchTime = new Date().getTime() - beginTime
+            this.getAjaxAndOnLoadTime()
+        }
+    }
 
+    /**
+     * 获取ajax的时间
+     */
+    getAjaxTime(){
+        this.config.loadNumer += 1
+        if (this.config.loadNumer === this.config.ajaxLength) {
+            if (type == 'load') {
+                console.log('====================================')
+                console.log('AJAX onload')
+                console.log('====================================')
+            } else if (type == 'readychange') {
+                console.log('====================================')
+                console.log('AJAX onreadystatechange 方法')
+                console.log('====================================')
+            } else {
+                console.log('====================================')
+                console.log('error 方法')
+                console.log('====================================')
+            }
+            this.config.ajaxLength = this.config.loadNumer = 0
+            this.ajaxTime = new Date().getTime() - this.beginTime
+            this.getAjaxAndOnLoadTime()
+        }
+    }
+
+    /**
+     * ajax响应汇报
+     */
+    ajaxResponse(xhr, type) {
+        let defaultInfo = Object.assign({}, errordefo);
+        defaultInfo.time = new Date().getTime();
+        defaultInfo.resource = 'ajax'
+        defaultInfo.msg = xhr.statusText || 'ajax请求错误';
+        defaultInfo.method = xhr.method
+        defaultInfo.data = {
+            resourceUrl: xhr.responseURL,
+            text: xhr.statusText,
+            status: xhr.status
+        }
+        this.config.errorList.push(defaultInfo)
     }
 
 }

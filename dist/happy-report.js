@@ -4,9 +4,12 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+var Ajax = require('./ajax');
+
 /**
  * HappyPerformance
  */
+
 var HappyPerformance = function () {
     function HappyPerformance(options, fn) {
         _classCallCheck(this, HappyPerformance);
@@ -146,7 +149,9 @@ var HappyPerformance = function () {
             }
 
             // 拦截Ajax
-            if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {}
+            if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {
+                this.handleAjax();
+            }
         }
 
         /**
@@ -382,12 +387,67 @@ var HappyPerformance = function () {
         }
 
         /**
-         * 处理Ajax
+         * 处理ajax
          */
 
     }, {
         key: 'handleAjax',
-        value: function handleAjax() {}
+        value: function handleAjax() {
+            Ajax({
+                onreadystatechange: function onreadystatechange(xhr) {
+                    if (xhr.readyState === 4) {
+                        setTimeout(function () {
+                            if (conf.goingType === 'load') return;
+                            conf.goingType = 'readychange';
+
+                            getAjaxTime('readychange');
+
+                            if (xhr.status < 200 || xhr.status > 300) {
+                                xhr.method = xhr.args.method;
+                                ajaxResponse(xhr);
+                            }
+                        }, 600);
+                    }
+                },
+                onerror: function onerror(xhr) {
+                    getAjaxTime('error');
+                    if (xhr.args && xhr.args.length) {
+                        xhr.method = xhr.args.method;
+                        xhr.responseURL = xhr.args.url;
+                        xhr.statusText = 'ajax请求路径有误';
+                    }
+                    ajaxResponse(xhr);
+                },
+                onload: function onload(xhr) {
+                    if (xhr.readyState === 4) {
+                        if (conf.goingType === 'readychange') return;
+                        conf.goingType = 'load';
+                        getAjaxTime('load');
+                        if (xhr.status < 200 || xhr.status > 300) {
+                            xhr.method = xhr.args.method;
+                            ajaxResponse(xhr);
+                        }
+                    }
+                },
+                open: function open(arg, xhr) {
+                    if (opt.filterUrl && opt.filterUrl.length) {
+                        var begin = false;
+                        opt.filterUrl.forEach(function (item) {
+                            if (arg[1].indexOf(item) != -1) begin = true;
+                        });
+                        if (begin) return;
+                    }
+
+                    var result = { url: arg[1], method: arg[0] || 'GET', type: 'xmlhttprequest' };
+                    this.args = result;
+
+                    clearPerformance();
+                    conf.ajaxMsg.push(result);
+                    conf.ajaxLength = conf.ajaxLength + 1;
+                    conf.haveAjax = true;
+                }
+            });
+        }
 
         /**
          * fetch参数
