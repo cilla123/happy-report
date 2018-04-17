@@ -12,6 +12,7 @@ var HappyPerformance = function () {
         _classCallCheck(this, HappyPerformance);
 
         this.init(options);
+        this.fn = fn;
     }
 
     /**
@@ -45,6 +46,8 @@ var HappyPerformance = function () {
                 filterUrl: [],
                 // 是否上报页面性能数据
                 isUploadPagePerformanceData: true,
+                // 是否上报页面资源数据
+                isUploadPageResource: true,
                 // 是否上报错误信息
                 isUploadPageErrorInfo: true
             }, options || {});
@@ -60,8 +63,8 @@ var HappyPerformance = function () {
             this.config = {
                 // 资源列表
                 resourceList: [],
-                // 页面性能列表
-                performanceList: [],
+                // 页面性能集合
+                performance: {},
                 // 错误列表
                 errorList: [],
                 // 页面fetch数量
@@ -126,6 +129,7 @@ var HappyPerformance = function () {
         value: function initEvent() {
             var _this = this;
 
+            // 处理错误
             if (this.options.isUploadPageErrorInfo) {
                 this.handleError();
             }
@@ -135,6 +139,14 @@ var HappyPerformance = function () {
                 _this.loadTime = new Date().getTime() - _this.beginTime;
                 getAjaxAndOnLoadTime();
             }, false);
+
+            // 执行fetch重写
+            if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {
+                this.handleFetch();
+            }
+
+            // 拦截Ajax
+            if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {}
         }
 
         /**
@@ -189,7 +201,217 @@ var HappyPerformance = function () {
 
     }, {
         key: 'getAjaxAndOnLoadTime',
-        value: function getAjaxAndOnLoadTime() {}
+        value: function getAjaxAndOnLoadTime() {
+            var _config = this.config,
+                haveAjax = _config.haveAjax,
+                haveFetch = _config.haveFetch;
+
+            var ajaxTime = this.ajaxTime;
+            var fetchTime = this.fetchTime;
+            var loadTime = this.loadTime;
+            if (haveAjax && haveFetch && loadTime && fetchTime) {
+                console.table({ loadTime: loadTime, ajaxTime: ajaxTime, fetchTime: fetchTime });
+                this.reportData();
+            } else if (haveAjax && !haveFetch && ajaxTime && loadTime) {
+                console.table({ loadTime: loadTime, ajaxTime: ajaxTime });
+                this.reportData();
+            } else if (!haveAjax && haveFetch && loadTime && fetchTime) {
+                console.table({ loadTime: loadTime, fetchTime: fetchTime });
+                this.reportData();
+            } else if (!haveAjax && !haveFetch && loadTime) {
+                console.table({ loadTime: loadTime });
+                this.reportData();
+            }
+        }
+
+        /**
+         * 数据汇报
+         */
+
+    }, {
+        key: 'reportData',
+        value: function reportData() {
+            var _this3 = this;
+
+            setTimeout(function () {
+                if (_this3.options.isUploadPagePerformanceData) {
+                    _this3.performancePage();
+                }
+                if (_this3.options.isUploadPageResource) {
+                    _this3.performanceResource();
+                }
+                var _config2 = _this3.config,
+                    page = _config2.page,
+                    preUrl = _config2.preUrl,
+                    appVersion = _config2.appVersion,
+                    errorList = _config2.errorList,
+                    performance = _config2.performance,
+                    resourceList = _config2.resourceList;
+
+                var reuslt = {
+                    page: page,
+                    preUrl: preUrl,
+                    appVersion: appVersion,
+                    errorList: errorList,
+                    performance: performance,
+                    resourceList: resourceList
+                };
+                console.log(JSON.stringify(reuslt));
+                _this3.fn && _this3.fn(reuslt);
+                if (!_this3.fn && window.fetch) {
+                    fetch(_this3.options.domain, {
+                        method: "POST",
+                        type: "report-data",
+                        body: JSON.stringify(reuslt)
+                    });
+                }
+            }, this.options.outTimt);
+        }
+
+        /**
+         * 统计页面性能
+         */
+
+    }, {
+        key: 'performancePage',
+        value: function performancePage() {
+            if (!window.performance) return;
+            var timing = performance.timing;
+            this.config.performance = {
+                // DNS解析时间
+                dnst: timing.domainLookupEnd - timing.domainLookupStart || 0,
+                //TCP建立时间
+                tcpt: timing.connectEnd - timing.connectStart || 0,
+                // 白屏时间  
+                wit: timing.responseStart - timing.navigationStart || 0,
+                //dom渲染完成时间
+                domt: timing.domContentLoadedEventEnd - timing.navigationStart || 0,
+                //页面onload时间
+                lodt: timing.loadEventEnd - timing.navigationStart || 0,
+                // 页面准备时间 
+                radt: timing.fetchStart - timing.navigationStart || 0,
+                // 页面重定向时间
+                rdit: timing.redirectEnd - timing.redirectStart || 0,
+                // unload时间
+                uodt: timing.unloadEventEnd - timing.unloadEventStart || 0,
+                //request请求耗时
+                reqt: timing.responseEnd - timing.requestStart || 0,
+                //页面解析dom耗时
+                andt: timing.domComplete - timing.domInteractive || 0
+            };
+        }
+
+        /**
+         * 统计页面资源性能
+         */
+
+    }, {
+        key: 'performanceResource',
+        value: function performanceResource() {
+            var _this4 = this;
+
+            if (!window.performance && !window.performance.getEntries) return false;
+            var resource = performance.getEntriesByType('resource');
+
+            var resourceList = [];
+            if (!resource && !resource.length) return resourceList;
+
+            resource.forEach(function (item) {
+                var json = {
+                    name: item.name,
+                    method: 'GET',
+                    type: item.initiatorType,
+                    duration: item.duration.toFixed(2) || 0,
+                    decodedBodySize: item.decodedBodySize || 0,
+                    nextHopProtocol: item.nextHopProtocol
+                };
+                var ajaxMsg = _this4.config.ajaxMsg;
+
+                if (ajaxMsg && ajaxMsg.length) {
+                    for (var i = 0, len = ajaxMsg.length; i < len; i++) {
+                        if (ajaxMsg[i].url === item.name) {
+                            json.method = ajaxMsg[i].method || 'GET';
+                            json.type = ajaxMsg[i].type || json.type;
+                        }
+                    }
+                }
+                resourceList.push(json);
+            });
+            this.conf.resourceList = resourceList;
+        }
+
+        /**
+         * 处理fetch
+         */
+
+    }, {
+        key: 'handleFetch',
+        value: function handleFetch() {
+            if (!window.fetch) return;
+            var _fetch = fetch;
+            var self = this;
+            window.fetch = function () {
+                var result = self.fetchArg(arguments);
+                if (result.type !== 'report-data') {
+                    self.clearPerformance();
+                    self.conf.ajaxMsg.push(result);
+                    self.conf.fetLength = self.conf.fetLength + 1;
+                    self.conf.haveFetch = true;
+                }
+                return _fetch.apply(this, arguments).then(function (res) {
+                    if (result.type === 'report-data') return;
+                    self.getFetchTime('success');
+                    return res;
+                }).catch(function (err) {
+                    if (result.type === 'report-data') return;
+                    self.getFetchTime('error');
+                    var defaultInfo = Object.assign({}, self.errorDefault);
+                    defaultInfo.time = new Date().getTime();
+                    defaultInfo.resource = 'fetch';
+                    defaultInfo.msg = 'fetch请求错误';
+                    defaultInfo.method = result.method;
+                    defaultInfo.data = {
+                        resourceUrl: result.url,
+                        text: err.stack || err,
+                        status: 0
+                    };
+                    self.conf.errorList.push(defaultInfo);
+                    return err;
+                });
+            };
+        }
+
+        /**
+         * 处理Ajax
+         */
+
+    }, {
+        key: 'handleAjax',
+        value: function handleAjax() {}
+
+        /**
+         * fetch参数
+         */
+
+    }, {
+        key: 'fetchArg',
+        value: function fetchArg() {}
+
+        /**
+         * 清理Performance
+         */
+
+    }, {
+        key: 'clearPerformance',
+        value: function clearPerformance() {}
+
+        /**
+         * 获取Fetch的时间
+         */
+
+    }, {
+        key: 'getFetchTime',
+        value: function getFetchTime() {}
     }]);
 
     return HappyPerformance;
