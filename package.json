@@ -4,7 +4,8 @@
   "description": "数据上报插件",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "gulp",
+    "build": "gulp build"
   },
   "repository": {
     "type": "git",
