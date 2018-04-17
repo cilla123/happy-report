@@ -1,11 +1,9 @@
-const Ajax = require('./ajax')
-
 /**
  * HappyPerformance
  */
 class HappyPerformance {
 
-    constructor(options, fn){
+    constructor(options, fn) {
         this.init(options)
         this.fn = fn
     }
@@ -13,7 +11,7 @@ class HappyPerformance {
     /**
      * 初始化
      */
-    init(options){
+    init(options) {
         this.initOptions(options)
         this.initOptions()
         this.initErrorDefault()
@@ -23,7 +21,7 @@ class HappyPerformance {
     /**
      * 初始化选择项
      */
-    initOptions(options){
+    initOptions(options) {
         // 选择项
         this.options = Object.assign({
             // 上报地址
@@ -44,7 +42,7 @@ class HappyPerformance {
     /**
      * 初始化配置
      */
-    initConfig(){
+    initConfig() {
         this.config = {
             // 资源列表
             resourceList: [],
@@ -80,11 +78,11 @@ class HappyPerformance {
     /**
      * 默认错误信息
      */
-    initErrorDefault(){
+    initErrorDefault() {
         this.errorDefault = {
-            time: '',   
+            time: '',
             resource: 'js',
-            msg: '',  
+            msg: '',
             data: {}
         }
     }
@@ -92,7 +90,7 @@ class HappyPerformance {
     /**
      * 初始化默认值
      */
-    initDefaultData(){
+    initDefaultData() {
         this.beginTime = new Date().getTime()
         this.loadTime = 0
         this.ajaxTime = 0
@@ -102,7 +100,7 @@ class HappyPerformance {
     /**
      * 初始化事件
      */
-    initEvent(){
+    initEvent() {
         // 处理错误
         if (this.options.isUploadPageErrorInfo) {
             this.handleError()
@@ -112,10 +110,10 @@ class HappyPerformance {
         addEventListener("load", () => {
             this.loadTime = new Date().getTime() - this.beginTime
             getAjaxAndOnLoadTime()
-        },false)
+        }, false)
 
         // 执行fetch重写
-        if(this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {
+        if (this.options.isUploadPageResource || this.options.isUploadPageErrorInfo) {
             this.handleFetch()
         }
 
@@ -129,7 +127,7 @@ class HappyPerformance {
      * 处理错误信息
      * 进行JS拦截
      */
-    handleError(){
+    handleError() {
         // 捕捉img, script, css, jsonp
         window.addEventListener('error', (e) => {
             const defaultInfo = Object.assign({}, this.errorDefault)
@@ -163,13 +161,13 @@ class HappyPerformance {
                 defaultInfo.time = new Date().getTime()
                 this.config.errorList.push(defaultInfo)
             }, 0)
-        } 
+        }
     }
 
     /**
      * 获取Ajax和onLoad时候的时间长度
      */
-    getAjaxAndOnLoadTime(){
+    getAjaxAndOnLoadTime() {
         const { haveAjax, haveFetch } = this.config
         const ajaxTime = this.ajaxTime
         const fetchTime = this.fetchTime
@@ -177,22 +175,22 @@ class HappyPerformance {
         if (haveAjax && haveFetch && loadTime && fetchTime) {
             console.table({ loadTime, ajaxTime, fetchTime })
             this.reportData()
-        }else if(haveAjax && !haveFetch && ajaxTime && loadTime){
-            console.table({ loadTime, ajaxTime })        
-            this.reportData()                
-        }else if (!haveAjax && haveFetch && loadTime && fetchTime) {
-            console.table({ loadTime, fetchTime })     
-            this.reportData()                   
-        }else if(!haveAjax && !haveFetch && loadTime){
-            console.table({ loadTime })       
-            this.reportData()                             
+        } else if (haveAjax && !haveFetch && ajaxTime && loadTime) {
+            console.table({ loadTime, ajaxTime })
+            this.reportData()
+        } else if (!haveAjax && haveFetch && loadTime && fetchTime) {
+            console.table({ loadTime, fetchTime })
+            this.reportData()
+        } else if (!haveAjax && !haveFetch && loadTime) {
+            console.table({ loadTime })
+            this.reportData()
         }
     }
 
     /**
      * 数据汇报
      */
-    reportData(){
+    reportData() {
         setTimeout(() => {
             if (this.options.isUploadPagePerformanceData) {
                 this.performancePage()
@@ -224,45 +222,45 @@ class HappyPerformance {
     /**
      * 统计页面性能
      */
-    performancePage(){
+    performancePage() {
         if (!window.performance) return;
-    	const timing = performance.timing
-    	this.config.performance = {
-    		// DNS解析时间
-    		dnst: timing.domainLookupEnd - timing.domainLookupStart || 0,  
-    		//TCP建立时间
-    		tcpt: timing.connectEnd - timing.connectStart || 0, 
-    		// 白屏时间  
-    		wit: timing.responseStart - timing.navigationStart || 0, 
-    		//dom渲染完成时间
-    		domt: timing.domContentLoadedEventEnd - timing.navigationStart || 0,  
-    		//页面onload时间
-    		lodt: timing.loadEventEnd - timing.navigationStart || 0, 
-    		// 页面准备时间 
-    		radt: timing.fetchStart - timing.navigationStart || 0, 
-    		// 页面重定向时间
-    		rdit: timing.redirectEnd - timing.redirectStart || 0, 
-    		// unload时间
-    		uodt: timing.unloadEventEnd - timing.unloadEventStart || 0,
-    		//request请求耗时
-    		reqt: timing.responseEnd - timing.requestStart || 0, 
-    		//页面解析dom耗时
-    		andt: timing.domComplete - timing.domInteractive || 0, 
-    	}
+        const timing = performance.timing
+        this.config.performance = {
+            // DNS解析时间
+            dnst: timing.domainLookupEnd - timing.domainLookupStart || 0,
+            //TCP建立时间
+            tcpt: timing.connectEnd - timing.connectStart || 0,
+            // 白屏时间  
+            wit: timing.responseStart - timing.navigationStart || 0,
+            //dom渲染完成时间
+            domt: timing.domContentLoadedEventEnd - timing.navigationStart || 0,
+            //页面onload时间
+            lodt: timing.loadEventEnd - timing.navigationStart || 0,
+            // 页面准备时间 
+            radt: timing.fetchStart - timing.navigationStart || 0,
+            // 页面重定向时间
+            rdit: timing.redirectEnd - timing.redirectStart || 0,
+            // unload时间
+            uodt: timing.unloadEventEnd - timing.unloadEventStart || 0,
+            //request请求耗时
+            reqt: timing.responseEnd - timing.requestStart || 0,
+            //页面解析dom耗时
+            andt: timing.domComplete - timing.domInteractive || 0,
+        }
     }
 
     /**
      * 统计页面资源性能
      */
-    performanceResource(){
+    performanceResource() {
         if (!window.performance && !window.performance.getEntries) return false;
-    	const resource = performance.getEntriesByType('resource')
+        const resource = performance.getEntriesByType('resource')
 
-    	const resourceList = [];
-    	if(!resource && !resource.length) return resourceList;
+        const resourceList = [];
+        if (!resource && !resource.length) return resourceList;
 
-    	resource.forEach((item) => {
-    		const json = {
+        resource.forEach((item) => {
+            const json = {
                 name: item.name,
                 method: 'GET',
                 type: item.initiatorType,
@@ -271,40 +269,40 @@ class HappyPerformance {
                 nextHopProtocol: item.nextHopProtocol,
             }
             const { ajaxMsg } = this.config
-            if(ajaxMsg && ajaxMsg.length){
-                for( let i=0,len = ajaxMsg.length; i < len;i++ ){
-                    if(ajaxMsg[i].url === item.name){
+            if (ajaxMsg && ajaxMsg.length) {
+                for (let i = 0, len = ajaxMsg.length; i < len; i++) {
+                    if (ajaxMsg[i].url === item.name) {
                         json.method = ajaxMsg[i].method || 'GET'
                         json.type = ajaxMsg[i].type || json.type
                     }
                 }
             }
             resourceList.push(json)
-    	})
+        })
         this.conf.resourceList = resourceList
     }
 
     /**
      * 处理fetch
      */
-    handleFetch(){
-        if(!window.fetch) return
-        let _fetch = fetch 
+    handleFetch() {
+        if (!window.fetch) return
+        let _fetch = fetch
         const self = this
-    	window.fetch = function() {
+        window.fetch = function () {
             const result = self.fetchArg(arguments)
-            if(result.type !== 'report-data'){
+            if (result.type !== 'report-data') {
                 self.clearPerformance()
                 self.conf.ajaxMsg.push(result)
                 self.conf.fetLength = self.conf.fetLength + 1
                 self.conf.haveFetch = true
             }
-    		return _fetch.apply(this, arguments).then((res)=>{ 
-                if(result.type === 'report-data') return
+            return _fetch.apply(this, arguments).then((res) => {
+                if (result.type === 'report-data') return
                 self.getFetchTime('success')
-                return res 
-            }).catch((err)=>{ 
-                if(result.type === 'report-data') return
+                return res
+            }).catch((err) => {
+                if (result.type === 'report-data') return
                 self.getFetchTime('error')
                 const defaultInfo = Object.assign({}, self.errorDefault)
                 defaultInfo.time = new Date().getTime()
@@ -313,26 +311,25 @@ class HappyPerformance {
                 defaultInfo.method = result.method
                 defaultInfo.data = {
                     resourceUrl: result.url,
-                    text:err.stack || err,
+                    text: err.stack || err,
                     status: 0
                 }
                 self.conf.errorList.push(defaultInfo)
-                return err  
+                return err
             });
-    	}
+        }
     }
 
     /**
      * 处理ajax
      */
-    handleAjax(){
+    handleAjax() {
         Ajax({
             onreadystatechange: (xhr) => {
                 if (xhr.readyState === 4) {
                     setTimeout(() => {
-                        const { goingType } = this.config
-                        if (goingType === 'load') return
-                        goingType = 'readychange'
+                        if (this.config.goingType === 'load') return
+                        this.config.goingType = 'readychange'
 
                         this.getAjaxTime('readychange')
 
@@ -354,9 +351,8 @@ class HappyPerformance {
             },
             onload: (xhr) => {
                 if (xhr.readyState === 4) {
-                    const { goingType } = this.config
-                    if (goingType === 'readychange') return
-                    goingType = 'load'
+                    if (this.config.goingType === 'readychange') return
+                    this.config.goingType = 'load'
                     this.getAjaxTime('load')
                     if (xhr.status < 200 || xhr.status > 300) {
                         xhr.method = xhr.args.method
@@ -385,7 +381,7 @@ class HappyPerformance {
     /**
      * fetch参数
      */
-    fetchArg(){
+    fetchArg() {
         const result = { method: 'GET', type: 'fetchrequest' }
         const args = Array.prototype.slice.apply(arg)
 
@@ -410,7 +406,7 @@ class HappyPerformance {
     /**
      * 清理Performance
      */
-    clearPerformance(){
+    clearPerformance() {
         if (!window.performance && !window.performance.clearResourceTimings) return
         const { haveAjax, haveFetch, ajaxLength, fetLength } = this.config
         if (haveAjax && haveFetch && ajaxLength == 0 && fetLength == 0) {
@@ -437,7 +433,7 @@ class HappyPerformance {
     /**
      * 获取Fetch的时间
      */
-    getFetchTime(){
+    getFetchTime() {
         this.config.fetchNumber += 1
         if (this.config.fetLength === this.config.fetchNumber) {
             if (type == 'success') {
@@ -454,7 +450,7 @@ class HappyPerformance {
     /**
      * 获取ajax的时间
      */
-    getAjaxTime(){
+    getAjaxTime() {
         this.config.loadNumer += 1
         if (this.config.loadNumer === this.config.ajaxLength) {
             if (type == 'load') {
@@ -493,4 +489,73 @@ class HappyPerformance {
         this.config.errorList.push(defaultInfo)
     }
 
+}
+
+/**
+ * AJax
+ */
+function Ajax(funs) {
+    window._ahrealxhr = window._ahrealxhr || XMLHttpRequest
+    XMLHttpRequest = function () {
+        this.xhr = new window._ahrealxhr;
+        for (let attr in this.xhr) {
+            let type = "";
+            try {
+                type = typeof this.xhr[attr]
+            } catch (e) { }
+            if (type === "function") {
+                this[attr] = hookfun(attr);
+            } else {
+                Object.defineProperty(this, attr, {
+                    get: getFactory(attr),
+                    set: setFactory(attr)
+                })
+            }
+        }
+    }
+
+    /**
+     * 获取工厂
+     */
+    function getFactory(attr) {
+        return function () {
+            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
+        }
+    }
+
+    /**
+     * 设置工厂
+     */
+    function setFactory(attr) {
+        return function (f) {
+            let xhr = this.xhr;
+            let that = this;
+            if (attr.indexOf("on") != 0) {
+                this[attr + "_"] = f;
+                return;
+            }
+            if (funs[attr]) {
+                xhr[attr] = function () {
+                    funs[attr](that) || f.apply(xhr, arguments);
+                }
+            } else {
+                xhr[attr] = f;
+            }
+        }
+    }
+
+    /**
+     * 钩子函数
+     */
+    function hookfun(fun) {
+        return function () {
+            let args = [].slice.call(arguments)
+            if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
+                return;
+            }
+            return this.xhr[fun].apply(this.xhr, args);
+        }
+    }
+
+    return window._ahrealxhr;
 }
