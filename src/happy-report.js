@@ -4,8 +4,8 @@
 class HappyPerformance {
 
     constructor(options, fn) {
-        this.init(options)
         this.fn = fn
+        this.init(options)
     }
 
     /**
@@ -13,7 +13,8 @@ class HappyPerformance {
      */
     init(options) {
         this.initOptions(options)
-        this.initOptions()
+        this.initConfig()
+        this.initDefaultData()
         this.initErrorDefault()
         this.initEvent()
     }
@@ -29,7 +30,7 @@ class HappyPerformance {
             // 延迟上报时间
             outTimt: 1000,
             // ajax请求的时候需要过滤的url信息
-            filterUrl: [],
+            filterUrl: ['http://localhost:35729/livereload.js?snipver=1', 'https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js', 'http://localhost:8080/dist/happy-report.js'],
             // 是否上报页面性能数据
             isUploadPagePerformanceData: true,
             // 是否上报页面资源数据
@@ -109,7 +110,7 @@ class HappyPerformance {
         // 绑定onload事件
         addEventListener("load", () => {
             this.loadTime = new Date().getTime() - this.beginTime
-            getAjaxAndOnLoadTime()
+            this.getAjaxAndOnLoadTime()
         }, false)
 
         // 执行fetch重写
@@ -128,9 +129,13 @@ class HappyPerformance {
      * 进行JS拦截
      */
     handleError() {
+
+        const self = this
+
         // 捕捉img, script, css, jsonp
-        window.addEventListener('error', (e) => {
-            const defaultInfo = Object.assign({}, this.errorDefault)
+        window.addEventListener('error', function(e) {
+            console.log(e)
+            const defaultInfo = Object.assign({}, self.errorDefault)
             defaultInfo.resource = 'resource'
             defaultInfo.time = new Date().getTime()
             defaultInfo.msg = `${e.target.localName} 读取失败`
@@ -138,16 +143,17 @@ class HappyPerformance {
             defaultInfo.data = {
                 target: e.target.localName,
                 type: e.type,
-                resourceUrl: e.target.currentSrc
+                resourceUrl: e.target.localName == 'img' ? e.target.currentSrc : e.target.href
             }
             if (e.target != window) {
-                this.config.errorList.push(defaultInfo)
+                console.log(defaultInfo)
+                self.config.errorList.push(defaultInfo)
             }
         }, true)
 
         // 捕捉js
-        window.onerror = (msg, url, line, col, error) => {
-            const defaultInfo = Object.assign({}, this.errorDefault)
+        window.onerror = function (msg, url, line, col, error) {
+            const defaultInfo = Object.assign({}, self.errorDefault)
             // 使用定时器为了，以最小单元来捕捉线上代码，不然很容易出错
             setTimeout(() => {
                 col = col || (window.event && window.event.errorCharacter) || 0
@@ -159,8 +165,9 @@ class HappyPerformance {
                     resourceUrl: url,
                 }
                 defaultInfo.time = new Date().getTime()
-                this.config.errorList.push(defaultInfo)
-            }, 0)
+                console.log(defaultInfo)
+                self.config.errorList.push(defaultInfo)
+            }, 1000)
         }
     }
 
@@ -172,6 +179,7 @@ class HappyPerformance {
         const ajaxTime = this.ajaxTime
         const fetchTime = this.fetchTime
         const loadTime = this.loadTime
+        console.log(haveAjax, haveFetch, ajaxTime, fetchTime, loadTime)
         if (haveAjax && haveFetch && loadTime && fetchTime) {
             console.table({ loadTime, ajaxTime, fetchTime })
             this.reportData()
@@ -279,7 +287,7 @@ class HappyPerformance {
             }
             resourceList.push(json)
         })
-        this.conf.resourceList = resourceList
+        this.config.resourceList = resourceList
     }
 
     /**
@@ -381,10 +389,9 @@ class HappyPerformance {
     /**
      * fetch参数
      */
-    fetchArg() {
+    fetchArg(arg) {
         const result = { method: 'GET', type: 'fetchrequest' }
         const args = Array.prototype.slice.apply(arg)
-
         if (!args || !args.length) return result;
         try {
             if (args.length === 1) {
@@ -399,7 +406,9 @@ class HappyPerformance {
                 result.method = args[1].method
                 result.type = args[1].type
             }
-        } catch (err) { }
+        } catch (err) { 
+            console.log(err)
+        }
         return result
     }
 
@@ -433,7 +442,7 @@ class HappyPerformance {
     /**
      * 获取Fetch的时间
      */
-    getFetchTime() {
+    getFetchTime(type) {
         this.config.fetchNumber += 1
         if (this.config.fetLength === this.config.fetchNumber) {
             if (type == 'success') {
@@ -442,7 +451,7 @@ class HappyPerformance {
                 console.log('fetch error')
             }
             this.config.fetchNumber = this.config.fetLength = 0
-            this.fetchTime = new Date().getTime() - beginTime
+            this.fetchTime = new Date().getTime() - this.beginTime
             this.getAjaxAndOnLoadTime()
         }
     }
@@ -450,7 +459,7 @@ class HappyPerformance {
     /**
      * 获取ajax的时间
      */
-    getAjaxTime() {
+    getAjaxTime(type) {
         this.config.loadNumer += 1
         if (this.config.loadNumer === this.config.ajaxLength) {
             if (type == 'load') {
@@ -476,10 +485,10 @@ class HappyPerformance {
      * ajax响应汇报
      */
     ajaxResponse(xhr, type) {
-        let defaultInfo = Object.assign({}, errordefo);
-        defaultInfo.time = new Date().getTime();
+        let defaultInfo = Object.assign({}, this.errorDefault)
+        defaultInfo.time = new Date().getTime()
         defaultInfo.resource = 'ajax'
-        defaultInfo.msg = xhr.statusText || 'ajax请求错误';
+        defaultInfo.msg = xhr.statusText || 'ajax请求错误'
         defaultInfo.method = xhr.method
         defaultInfo.data = {
             resourceUrl: xhr.responseURL,
@@ -519,7 +528,7 @@ function Ajax(funs) {
      */
     function getFactory(attr) {
         return function () {
-            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
+            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr]
         }
     }
 
@@ -528,18 +537,18 @@ function Ajax(funs) {
      */
     function setFactory(attr) {
         return function (f) {
-            let xhr = this.xhr;
-            let that = this;
+            let xhr = this.xhr
+            let that = this
             if (attr.indexOf("on") != 0) {
-                this[attr + "_"] = f;
-                return;
+                this[attr + "_"] = f
+                return
             }
             if (funs[attr]) {
                 xhr[attr] = function () {
-                    funs[attr](that) || f.apply(xhr, arguments);
+                    funs[attr](that) || f.apply(xhr, arguments)
                 }
             } else {
-                xhr[attr] = f;
+                xhr[attr] = f
             }
         }
     }
@@ -551,11 +560,11 @@ function Ajax(funs) {
         return function () {
             let args = [].slice.call(arguments)
             if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
-                return;
+                return
             }
-            return this.xhr[fun].apply(this.xhr, args);
+            return this.xhr[fun].apply(this.xhr, args)
         }
     }
 
-    return window._ahrealxhr;
+    return window._ahrealxhr
 }

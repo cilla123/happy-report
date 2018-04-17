@@ -13,8 +13,8 @@ var HappyPerformance = function () {
     function HappyPerformance(options, fn) {
         _classCallCheck(this, HappyPerformance);
 
-        this.init(options);
         this.fn = fn;
+        this.init(options);
     }
 
     /**
@@ -26,7 +26,8 @@ var HappyPerformance = function () {
         key: 'init',
         value: function init(options) {
             this.initOptions(options);
-            this.initOptions();
+            this.initConfig();
+            this.initDefaultData();
             this.initErrorDefault();
             this.initEvent();
         }
@@ -45,7 +46,7 @@ var HappyPerformance = function () {
                 // 延迟上报时间
                 outTimt: 1000,
                 // ajax请求的时候需要过滤的url信息
-                filterUrl: [],
+                filterUrl: ['http://localhost:35729/livereload.js?snipver=1', 'https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js', 'http://localhost:8080/dist/happy-report.js'],
                 // 是否上报页面性能数据
                 isUploadPagePerformanceData: true,
                 // 是否上报页面资源数据
@@ -139,7 +140,7 @@ var HappyPerformance = function () {
             // 绑定onload事件
             addEventListener("load", function () {
                 _this.loadTime = new Date().getTime() - _this.beginTime;
-                getAjaxAndOnLoadTime();
+                _this.getAjaxAndOnLoadTime();
             }, false);
 
             // 执行fetch重写
@@ -161,11 +162,13 @@ var HappyPerformance = function () {
     }, {
         key: 'handleError',
         value: function handleError() {
-            var _this2 = this;
+
+            var self = this;
 
             // 捕捉img, script, css, jsonp
             window.addEventListener('error', function (e) {
-                var defaultInfo = Object.assign({}, _this2.errorDefault);
+                console.log(e);
+                var defaultInfo = Object.assign({}, self.errorDefault);
                 defaultInfo.resource = 'resource';
                 defaultInfo.time = new Date().getTime();
                 defaultInfo.msg = e.target.localName + ' \u8BFB\u53D6\u5931\u8D25';
@@ -173,16 +176,17 @@ var HappyPerformance = function () {
                 defaultInfo.data = {
                     target: e.target.localName,
                     type: e.type,
-                    resourceUrl: e.target.currentSrc
+                    resourceUrl: e.target.localName == 'img' ? e.target.currentSrc : e.target.href
                 };
                 if (e.target != window) {
-                    _this2.config.errorList.push(defaultInfo);
+                    console.log(defaultInfo);
+                    self.config.errorList.push(defaultInfo);
                 }
             }, true);
 
             // 捕捉js
             window.onerror = function (msg, url, line, col, error) {
-                var defaultInfo = Object.assign({}, _this2.errorDefault);
+                var defaultInfo = Object.assign({}, self.errorDefault);
                 // 使用定时器为了，以最小单元来捕捉线上代码，不然很容易出错
                 setTimeout(function () {
                     col = col || window.event && window.event.errorCharacter || 0;
@@ -194,8 +198,9 @@ var HappyPerformance = function () {
                         resourceUrl: url
                     };
                     defaultInfo.time = new Date().getTime();
-                    _this2.config.errorList.push(defaultInfo);
-                }, 0);
+                    console.log(defaultInfo);
+                    self.config.errorList.push(defaultInfo);
+                }, 1000);
             };
         }
 
@@ -213,6 +218,7 @@ var HappyPerformance = function () {
             var ajaxTime = this.ajaxTime;
             var fetchTime = this.fetchTime;
             var loadTime = this.loadTime;
+            console.log(haveAjax, haveFetch, ajaxTime, fetchTime, loadTime);
             if (haveAjax && haveFetch && loadTime && fetchTime) {
                 console.table({ loadTime: loadTime, ajaxTime: ajaxTime, fetchTime: fetchTime });
                 this.reportData();
@@ -235,16 +241,16 @@ var HappyPerformance = function () {
     }, {
         key: 'reportData',
         value: function reportData() {
-            var _this3 = this;
+            var _this2 = this;
 
             setTimeout(function () {
-                if (_this3.options.isUploadPagePerformanceData) {
-                    _this3.performancePage();
+                if (_this2.options.isUploadPagePerformanceData) {
+                    _this2.performancePage();
                 }
-                if (_this3.options.isUploadPageResource) {
-                    _this3.performanceResource();
+                if (_this2.options.isUploadPageResource) {
+                    _this2.performanceResource();
                 }
-                var _config2 = _this3.config,
+                var _config2 = _this2.config,
                     page = _config2.page,
                     preUrl = _config2.preUrl,
                     appVersion = _config2.appVersion,
@@ -261,9 +267,9 @@ var HappyPerformance = function () {
                     resourceList: resourceList
                 };
                 console.log(JSON.stringify(reuslt));
-                _this3.fn && _this3.fn(reuslt);
-                if (!_this3.fn && window.fetch) {
-                    fetch(_this3.options.domain, {
+                _this2.fn && _this2.fn(reuslt);
+                if (!_this2.fn && window.fetch) {
+                    fetch(_this2.options.domain, {
                         method: "POST",
                         type: "report-data",
                         body: JSON.stringify(reuslt)
@@ -312,7 +318,7 @@ var HappyPerformance = function () {
     }, {
         key: 'performanceResource',
         value: function performanceResource() {
-            var _this4 = this;
+            var _this3 = this;
 
             if (!window.performance && !window.performance.getEntries) return false;
             var resource = performance.getEntriesByType('resource');
@@ -329,7 +335,7 @@ var HappyPerformance = function () {
                     decodedBodySize: item.decodedBodySize || 0,
                     nextHopProtocol: item.nextHopProtocol
                 };
-                var ajaxMsg = _this4.config.ajaxMsg;
+                var ajaxMsg = _this3.config.ajaxMsg;
 
                 if (ajaxMsg && ajaxMsg.length) {
                     for (var i = 0, len = ajaxMsg.length; i < len; i++) {
@@ -341,7 +347,7 @@ var HappyPerformance = function () {
                 }
                 resourceList.push(json);
             });
-            this.conf.resourceList = resourceList;
+            this.config.resourceList = resourceList;
         }
 
         /**
@@ -392,60 +398,60 @@ var HappyPerformance = function () {
     }, {
         key: 'handleAjax',
         value: function handleAjax() {
-            var _this5 = this;
+            var _this4 = this;
 
             Ajax({
                 onreadystatechange: function onreadystatechange(xhr) {
                     if (xhr.readyState === 4) {
                         setTimeout(function () {
-                            if (_this5.config.goingType === 'load') return;
-                            _this5.config.goingType = 'readychange';
+                            if (_this4.config.goingType === 'load') return;
+                            _this4.config.goingType = 'readychange';
 
-                            _this5.getAjaxTime('readychange');
+                            _this4.getAjaxTime('readychange');
 
                             if (xhr.status < 200 || xhr.status > 300) {
                                 xhr.method = xhr.args.method;
-                                _this5.ajaxResponse(xhr);
+                                _this4.ajaxResponse(xhr);
                             }
                         }, 600);
                     }
                 },
                 onerror: function onerror(xhr) {
-                    _this5.getAjaxTime('error');
+                    _this4.getAjaxTime('error');
                     if (xhr.args && xhr.args.length) {
                         xhr.method = xhr.args.method;
                         xhr.responseURL = xhr.args.url;
                         xhr.statusText = 'ajax请求路径错误!';
                     }
-                    _this5.ajaxResponse(xhr);
+                    _this4.ajaxResponse(xhr);
                 },
                 onload: function onload(xhr) {
                     if (xhr.readyState === 4) {
-                        if (_this5.config.goingType === 'readychange') return;
-                        _this5.config.goingType = 'load';
-                        _this5.getAjaxTime('load');
+                        if (_this4.config.goingType === 'readychange') return;
+                        _this4.config.goingType = 'load';
+                        _this4.getAjaxTime('load');
                         if (xhr.status < 200 || xhr.status > 300) {
                             xhr.method = xhr.args.method;
-                            _this5.ajaxResponse(xhr);
+                            _this4.ajaxResponse(xhr);
                         }
                     }
                 },
                 open: function open(arg, xhr) {
-                    if (_this5.options.filterUrl && _this5.options.filterUrl.length) {
+                    if (_this4.options.filterUrl && _this4.options.filterUrl.length) {
                         var begin = false;
-                        _this5.options.filterUrl.forEach(function (item) {
+                        _this4.options.filterUrl.forEach(function (item) {
                             if (arg[1].indexOf(item) != -1) begin = true;
                         });
                         if (begin) return;
                     }
 
                     var result = { url: arg[1], method: arg[0] || 'GET', type: 'xmlhttprequest' };
-                    _this5.args = result;
+                    _this4.args = result;
 
-                    _this5.clearPerformance();
-                    _this5.config.ajaxMsg.push(result);
-                    _this5.config.ajaxLength = _this5.config.ajaxLength + 1;
-                    _this5.config.haveAjax = true;
+                    _this4.clearPerformance();
+                    _this4.config.ajaxMsg.push(result);
+                    _this4.config.ajaxLength = _this4.config.ajaxLength + 1;
+                    _this4.config.haveAjax = true;
                 }
             });
         }
@@ -456,10 +462,9 @@ var HappyPerformance = function () {
 
     }, {
         key: 'fetchArg',
-        value: function fetchArg() {
+        value: function fetchArg(arg) {
             var result = { method: 'GET', type: 'fetchrequest' };
             var args = Array.prototype.slice.apply(arg);
-
             if (!args || !args.length) return result;
             try {
                 if (args.length === 1) {
@@ -474,7 +479,9 @@ var HappyPerformance = function () {
                     result.method = args[1].method;
                     result.type = args[1].type;
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.log(err);
+            }
             return result;
         }
 
@@ -522,7 +529,7 @@ var HappyPerformance = function () {
 
     }, {
         key: 'getFetchTime',
-        value: function getFetchTime() {
+        value: function getFetchTime(type) {
             this.config.fetchNumber += 1;
             if (this.config.fetLength === this.config.fetchNumber) {
                 if (type == 'success') {
@@ -531,7 +538,7 @@ var HappyPerformance = function () {
                     console.log('fetch error');
                 }
                 this.config.fetchNumber = this.config.fetLength = 0;
-                this.fetchTime = new Date().getTime() - beginTime;
+                this.fetchTime = new Date().getTime() - this.beginTime;
                 this.getAjaxAndOnLoadTime();
             }
         }
@@ -542,7 +549,7 @@ var HappyPerformance = function () {
 
     }, {
         key: 'getAjaxTime',
-        value: function getAjaxTime() {
+        value: function getAjaxTime(type) {
             this.config.loadNumer += 1;
             if (this.config.loadNumer === this.config.ajaxLength) {
                 if (type == 'load') {
@@ -571,7 +578,7 @@ var HappyPerformance = function () {
     }, {
         key: 'ajaxResponse',
         value: function ajaxResponse(xhr, type) {
-            var defaultInfo = Object.assign({}, errordefo);
+            var defaultInfo = Object.assign({}, this.errorDefault);
             defaultInfo.time = new Date().getTime();
             defaultInfo.resource = 'ajax';
             defaultInfo.msg = xhr.statusText || 'ajax请求错误';
@@ -598,11 +605,11 @@ function Ajax(funs) {
     XMLHttpRequest = function XMLHttpRequest() {
         this.xhr = new window._ahrealxhr();
         for (var attr in this.xhr) {
-            var _type = "";
+            var type = "";
             try {
-                _type = _typeof(this.xhr[attr]);
+                type = _typeof(this.xhr[attr]);
             } catch (e) {}
-            if (_type === "function") {
+            if (type === "function") {
                 this[attr] = hookfun(attr);
             } else {
                 Object.defineProperty(this, attr, {
