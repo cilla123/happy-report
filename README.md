@@ -54,6 +54,12 @@ HappyPerformance.otherData(function(data){
 })
 ```
 
+## 结果图
+![结果](https://github.com/cilla123/happy-report/blob/master/assets/%E7%BB%93%E6%9E%9C.jpeg?raw=true)
+
+
+## 提交的数据结构
+
 ```json
 {
 	"page": "http://localhost:8080/test/",  // 当前页面
