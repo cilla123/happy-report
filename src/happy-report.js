@@ -332,56 +332,55 @@ class HappyPerformance {
      * 处理ajax
      */
     handleAjax() {
-        const self = this
-        AjaxHook({
-            onreadystatechange: function (xhr) {
+        this.AjaxHook({
+            onreadystatechange: (xhr) => {
                 if (xhr.readyState === 4) {
                     setTimeout(() => {
-                        if (self.config.goingType === 'load') return
-                        self.config.goingType = 'readychange'
-                        self.getAjaxTime('readychange')
+                        if (this.config.goingType === 'load') return
+                        this.config.goingType = 'readychange'
+                        this.getAjaxTime('readychange')
                         if (xhr.status < 200 || xhr.status > 300) {
                             xhr.method = xhr.args.method
-                            self.ajaxResponse(xhr)
+                            this.ajaxResponse(xhr)
                         }
                     }, 600)
                 }
             },
-            onerror: function (xhr) {
-                self.getAjaxTime('error')
+            onerror: (xhr) => {
+                this.getAjaxTime('error')
                 if (xhr.args) {
                     xhr.method = xhr.args.method
                     xhr.responseURL = xhr.args.url
                     xhr.statusText = 'ajax请求路径错误!'
                 }
-                self.ajaxResponse(xhr)
+                this.ajaxResponse(xhr)
             },
-            onload: function (xhr) {
+            onload: (xhr) => {
                 if (xhr.readyState === 4) {
-                    if (self.config.goingType === 'readychange') return
-                    self.config.goingType = 'load'
-                    self.getAjaxTime('load')
+                    if (this.config.goingType === 'readychange') return
+                    this.config.goingType = 'load'
+                    this.getAjaxTime('load')
                     if (xhr.status < 200 || xhr.status > 300) {
                         xhr.method = xhr.args.method
-                        self.ajaxResponse(xhr)
+                        this.ajaxResponse(xhr)
                     }
                 }
             },
-            open: function (arg, xhr) {      
-                if (self.options.filterUrl && self.options.filterUrl.length) {
+            open: (arg, xhr) => {      
+                if (this.options.filterUrl && this.options.filterUrl.length) {
                     let begin = false
-                    self.options.filterUrl.forEach(item => { 
+                    this.options.filterUrl.forEach(item => { 
                         if (arg[1].indexOf(item) != -1) begin = true 
                     })
                     if (begin) return
                 }
                 const result = { url: arg[1], method: arg[0] || 'GET', type: 'xmlhttprequest' }
-                self.args = result
+                this.args = result
 
-                self.clearPerformance()
-                self.config.ajaxMsg.push(result)
-                self.config.ajaxLength = self.config.ajaxLength + 1;
-                self.config.haveAjax = true
+                this.clearPerformance()
+                this.config.ajaxMsg.push(result)
+                this.config.ajaxLength = this.config.ajaxLength + 1;
+                this.config.haveAjax = true
             }
         })
     }
@@ -463,17 +462,11 @@ class HappyPerformance {
         this.config.loadNumer += 1
         if (this.config.loadNumer === this.config.ajaxLength) {
             if (type == 'load') {
-                console.log('====================================')
                 console.log('AJAX onload')
-                console.log('====================================')
             } else if (type == 'readychange') {
-                console.log('====================================')
                 console.log('AJAX onreadystatechange 方法')
-                console.log('====================================')
             } else {
-                console.log('====================================')
                 console.log('error 方法')
-                console.log('====================================')
             }
             this.config.ajaxLength = this.config.loadNumer = 0
             this.ajaxTime = new Date().getTime() - this.beginTime
@@ -498,82 +491,78 @@ class HappyPerformance {
         this.config.errorList.push(defaultInfo)
     }
 
-}
-
-
-
-
-/**
- * AJax
- */
-function AjaxHook(funs) {
-
-    window._ahrealxhr = window._ahrealxhr || XMLHttpRequest
-    XMLHttpRequest = function() {
-        this.xhr = new window._ahrealxhr    
-        console.log(this)                           
-        for (let attr in this.xhr) {
-            let type = ""
-            try {
-                type = typeof this.xhr[attr]
-            } catch (e) {
-                console.log(e)
-            }
-            if (type === "function") {
-                this[attr] = hookfun(attr)
-            } else {
-                Object.defineProperty(this, attr, {
-                    get: getFactory(attr),
-                    set: setFactory(attr)
-                })
-            }
-        }
-    }
-
     /**
-     * 获取工厂
+     * AjaxHook
      */
-    function getFactory(attr) {
-        return function () {
-            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr]
-        }
-    }
-
-    /**
-     * 设置工厂
-     */
-    function setFactory(attr) {
-        return function (f) {
-            const xhr = this.xhr
-            const self = this             
-            if (attr.indexOf("on") != 0) {
-                this[attr + "_"] = f
-                return
-            }
-            if (funs[attr]) {
-                xhr[attr] = function () {
-                    funs[attr](self) || f.apply(xhr, arguments)
+    AjaxHook(funs) {
+        window._ahrealxhr = window._ahrealxhr || XMLHttpRequest
+        XMLHttpRequest = function() {
+            this.xhr = new window._ahrealxhr    
+            console.log(this)                           
+            for (let attr in this.xhr) {
+                let type = ""
+                try {
+                    type = typeof this.xhr[attr]
+                } catch (e) {
+                    console.log(e)
                 }
-            } else {
-                xhr[attr] = f
+                if (type === "function") {
+                    this[attr] = hookfun(attr)
+                } else {
+                    Object.defineProperty(this, attr, {
+                        get: getFactory(attr),
+                        set: setFactory(attr)
+                    })
+                }
             }
         }
-    }
 
-    /**
-     * 钩子函数
-     */
-    function hookfun(fun) {
-        return function () {
-            let args = [].slice.call(arguments)
-            if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
-                return
+        /**
+         * 获取工厂
+         */
+        function getFactory(attr) {
+            return function () {
+                return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr]
             }
-            return this.xhr[fun].apply(this.xhr, args)
         }
-    }
 
-    return window._ahrealxhr
+        /**
+         * 设置工厂
+         */
+        function setFactory(attr) {
+            return function (f) {
+                const xhr = this.xhr
+                const self = this             
+                if (attr.indexOf("on") != 0) {
+                    this[attr + "_"] = f
+                    return
+                }
+                if (funs[attr]) {
+                    xhr[attr] = function () {
+                        funs[attr](self) || f.apply(xhr, arguments)
+                    }
+                } else {
+                    xhr[attr] = f
+                }
+            }
+        }
+
+        /**
+         * 钩子函数
+         */
+        function hookfun(fun) {
+            return function () {
+                let args = [].slice.call(arguments)
+                if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
+                    return
+                }
+                return this.xhr[fun].apply(this.xhr, args)
+            }
+        }
+
+        return window._ahrealxhr
+    }
 }
+
 
 

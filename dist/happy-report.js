@@ -398,56 +398,57 @@ var HappyPerformance = function () {
     }, {
         key: 'handleAjax',
         value: function handleAjax() {
-            var self = this;
-            AjaxHook({
+            var _this4 = this;
+
+            this.AjaxHook({
                 onreadystatechange: function onreadystatechange(xhr) {
                     if (xhr.readyState === 4) {
                         setTimeout(function () {
-                            if (self.config.goingType === 'load') return;
-                            self.config.goingType = 'readychange';
-                            self.getAjaxTime('readychange');
+                            if (_this4.config.goingType === 'load') return;
+                            _this4.config.goingType = 'readychange';
+                            _this4.getAjaxTime('readychange');
                             if (xhr.status < 200 || xhr.status > 300) {
                                 xhr.method = xhr.args.method;
-                                self.ajaxResponse(xhr);
+                                _this4.ajaxResponse(xhr);
                             }
                         }, 600);
                     }
                 },
                 onerror: function onerror(xhr) {
-                    self.getAjaxTime('error');
+                    _this4.getAjaxTime('error');
                     if (xhr.args) {
                         xhr.method = xhr.args.method;
                         xhr.responseURL = xhr.args.url;
                         xhr.statusText = 'ajax请求路径错误!';
                     }
-                    self.ajaxResponse(xhr);
+                    _this4.ajaxResponse(xhr);
                 },
                 onload: function onload(xhr) {
                     if (xhr.readyState === 4) {
-                        if (self.config.goingType === 'readychange') return;
-                        self.config.goingType = 'load';
-                        self.getAjaxTime('load');
+                        if (_this4.config.goingType === 'readychange') return;
+                        _this4.config.goingType = 'load';
+                        _this4.getAjaxTime('load');
                         if (xhr.status < 200 || xhr.status > 300) {
                             xhr.method = xhr.args.method;
-                            self.ajaxResponse(xhr);
+                            _this4.ajaxResponse(xhr);
                         }
                     }
                 },
                 open: function open(arg, xhr) {
-                    if (self.options.filterUrl && self.options.filterUrl.length) {
+                    if (_this4.options.filterUrl && _this4.options.filterUrl.length) {
                         var begin = false;
-                        self.options.filterUrl.forEach(function (item) {
+                        _this4.options.filterUrl.forEach(function (item) {
                             if (arg[1].indexOf(item) != -1) begin = true;
                         });
                         if (begin) return;
                     }
                     var result = { url: arg[1], method: arg[0] || 'GET', type: 'xmlhttprequest' };
-                    self.args = result;
+                    _this4.args = result;
 
-                    self.clearPerformance();
-                    self.config.ajaxMsg.push(result);
-                    self.config.ajaxLength = self.config.ajaxLength + 1;
-                    self.config.haveAjax = true;
+                    _this4.clearPerformance();
+                    _this4.config.ajaxMsg.push(result);
+                    _this4.config.ajaxLength = _this4.config.ajaxLength + 1;
+                    _this4.config.haveAjax = true;
                 }
             });
         }
@@ -549,17 +550,11 @@ var HappyPerformance = function () {
             this.config.loadNumer += 1;
             if (this.config.loadNumer === this.config.ajaxLength) {
                 if (type == 'load') {
-                    console.log('====================================');
                     console.log('AJAX onload');
-                    console.log('====================================');
                 } else if (type == 'readychange') {
-                    console.log('====================================');
                     console.log('AJAX onreadystatechange 方法');
-                    console.log('====================================');
                 } else {
-                    console.log('====================================');
                     console.log('error 方法');
-                    console.log('====================================');
                 }
                 this.config.ajaxLength = this.config.loadNumer = 0;
                 this.ajaxTime = new Date().getTime() - this.beginTime;
@@ -586,82 +581,82 @@ var HappyPerformance = function () {
             };
             this.config.errorList.push(defaultInfo);
         }
+
+        /**
+         * AjaxHook
+         */
+
+    }, {
+        key: 'AjaxHook',
+        value: function AjaxHook(funs) {
+            window._ahrealxhr = window._ahrealxhr || XMLHttpRequest;
+            XMLHttpRequest = function XMLHttpRequest() {
+                this.xhr = new window._ahrealxhr();
+                console.log(this);
+                for (var attr in this.xhr) {
+                    var type = "";
+                    try {
+                        type = _typeof(this.xhr[attr]);
+                    } catch (e) {
+                        console.log(e);
+                    }
+                    if (type === "function") {
+                        this[attr] = hookfun(attr);
+                    } else {
+                        Object.defineProperty(this, attr, {
+                            get: getFactory(attr),
+                            set: setFactory(attr)
+                        });
+                    }
+                }
+            };
+
+            /**
+             * 获取工厂
+             */
+            function getFactory(attr) {
+                return function () {
+                    return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
+                };
+            }
+
+            /**
+             * 设置工厂
+             */
+            function setFactory(attr) {
+                return function (f) {
+                    var xhr = this.xhr;
+                    var self = this;
+                    if (attr.indexOf("on") != 0) {
+                        this[attr + "_"] = f;
+                        return;
+                    }
+                    if (funs[attr]) {
+                        xhr[attr] = function () {
+                            funs[attr](self) || f.apply(xhr, arguments);
+                        };
+                    } else {
+                        xhr[attr] = f;
+                    }
+                };
+            }
+
+            /**
+             * 钩子函数
+             */
+            function hookfun(fun) {
+                return function () {
+                    var args = [].slice.call(arguments);
+                    if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
+                        return;
+                    }
+                    return this.xhr[fun].apply(this.xhr, args);
+                };
+            }
+
+            return window._ahrealxhr;
+        }
     }]);
 
     return HappyPerformance;
 }();
-
-/**
- * AJax
- */
-
-
-function AjaxHook(funs) {
-
-    window._ahrealxhr = window._ahrealxhr || XMLHttpRequest;
-    XMLHttpRequest = function XMLHttpRequest() {
-        this.xhr = new window._ahrealxhr();
-        console.log(this);
-        for (var attr in this.xhr) {
-            var type = "";
-            try {
-                type = _typeof(this.xhr[attr]);
-            } catch (e) {
-                console.log(e);
-            }
-            if (type === "function") {
-                this[attr] = hookfun(attr);
-            } else {
-                Object.defineProperty(this, attr, {
-                    get: getFactory(attr),
-                    set: setFactory(attr)
-                });
-            }
-        }
-    };
-
-    /**
-     * 获取工厂
-     */
-    function getFactory(attr) {
-        return function () {
-            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
-        };
-    }
-
-    /**
-     * 设置工厂
-     */
-    function setFactory(attr) {
-        return function (f) {
-            var xhr = this.xhr;
-            var self = this;
-            if (attr.indexOf("on") != 0) {
-                this[attr + "_"] = f;
-                return;
-            }
-            if (funs[attr]) {
-                xhr[attr] = function () {
-                    funs[attr](self) || f.apply(xhr, arguments);
-                };
-            } else {
-                xhr[attr] = f;
-            }
-        };
-    }
-
-    /**
-     * 钩子函数
-     */
-    function hookfun(fun) {
-        return function () {
-            var args = [].slice.call(arguments);
-            if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
-                return;
-            }
-            return this.xhr[fun].apply(this.xhr, args);
-        };
-    }
-
-    return window._ahrealxhr;
-}
