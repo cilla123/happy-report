@@ -181,16 +181,16 @@ class HappyPerformance {
         const loadTime = this.loadTime
         console.log(haveAjax, haveFetch, ajaxTime, fetchTime, loadTime)
         if (haveAjax && haveFetch && loadTime && fetchTime) {
-            console.table({ loadTime, ajaxTime, fetchTime })
+            console.log({ loadTime, ajaxTime, fetchTime })
             this.reportData()
         } else if (haveAjax && !haveFetch && ajaxTime && loadTime) {
-            console.table({ loadTime, ajaxTime })
+            console.log({ loadTime, ajaxTime })
             this.reportData()
         } else if (!haveAjax && haveFetch && loadTime && fetchTime) {
-            console.table({ loadTime, fetchTime })
+            console.log({ loadTime, fetchTime })
             this.reportData()
         } else if (!haveAjax && !haveFetch && loadTime) {
-            console.table({ loadTime })
+            console.log({ loadTime })
             this.reportData()
         }
     }
@@ -348,11 +348,6 @@ class HappyPerformance {
                 }
             },
             onerror: function (xhr) {
-
-                console.log("*---------*")
-                console.log(xhr)
-                console.log("*---------*")
-
                 self.getAjaxTime('error')
                 if (xhr.args) {
                     xhr.method = xhr.args.method
@@ -436,7 +431,7 @@ class HappyPerformance {
      * 清楚Performance
      */
     clear() {
-        performance.clearResourceTimings();
+        performance.clearResourceTimings()
         this.config.performance = {}
         this.config.errorList = []
         this.config.preUrl = ''
@@ -505,14 +500,18 @@ class HappyPerformance {
 
 }
 
+
+
+
 /**
  * AJax
  */
 function AjaxHook(funs) {
+
     window._ahrealxhr = window._ahrealxhr || XMLHttpRequest
-    XMLHttpRequest = function () {
-        this.xhr = new window._ahrealxhr;
-        console.log(this)            
+    XMLHttpRequest = function() {
+        this.xhr = new window._ahrealxhr    
+        console.log(this)                           
         for (let attr in this.xhr) {
             let type = ""
             try {
@@ -523,8 +522,6 @@ function AjaxHook(funs) {
             if (type === "function") {
                 this[attr] = hookfun(attr)
             } else {
-                // console.log("attr------------>" + attr)
-                // console.log(this)
                 Object.defineProperty(this, attr, {
                     get: getFactory(attr),
                     set: setFactory(attr)
@@ -548,13 +545,8 @@ function AjaxHook(funs) {
     function setFactory(attr) {
         return function (f) {
             const xhr = this.xhr
-            const self = this    
-            // console.log(attr)            
+            const self = this             
             if (attr.indexOf("on") != 0) {
-                console.log("--**--")
-                console.log(attr)
-                console.log("--**--")
-                
                 this[attr + "_"] = f
                 return
             }
