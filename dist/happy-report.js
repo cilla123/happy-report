@@ -399,15 +399,13 @@ var HappyPerformance = function () {
         key: 'handleAjax',
         value: function handleAjax() {
             var self = this;
-            this.Ajax({
+            AjaxHook({
                 onreadystatechange: function onreadystatechange(xhr) {
                     if (xhr.readyState === 4) {
                         setTimeout(function () {
                             if (self.config.goingType === 'load') return;
                             self.config.goingType = 'readychange';
-
                             self.getAjaxTime('readychange');
-
                             if (xhr.status < 200 || xhr.status > 300) {
                                 xhr.method = xhr.args.method;
                                 self.ajaxResponse(xhr);
@@ -580,7 +578,7 @@ var HappyPerformance = function () {
 
     }, {
         key: 'ajaxResponse',
-        value: function ajaxResponse(xhr, type) {
+        value: function ajaxResponse(xhr) {
             var defaultInfo = Object.assign({}, this.errorDefault);
             defaultInfo.time = new Date().getTime();
             defaultInfo.resource = 'ajax';
@@ -593,81 +591,88 @@ var HappyPerformance = function () {
             };
             this.config.errorList.push(defaultInfo);
         }
-
-        /**
-         * AJax
-         */
-
-    }, {
-        key: 'Ajax',
-        value: function Ajax(funs) {
-            window._ahrealxhr = window._ahrealxhr || XMLHttpRequest;
-            XMLHttpRequest = function XMLHttpRequest() {
-
-                this.xhr = new window._ahrealxhr();
-                for (var attr in this.xhr) {
-                    var type = "";
-                    try {
-                        type = _typeof(this.xhr[attr]);
-                    } catch (e) {}
-                    if (type === "function") {
-                        this[attr] = hookfun(attr);
-                    } else {
-                        Object.defineProperty(this, attr, {
-                            get: getFactory(attr),
-                            set: setFactory(attr)
-                        });
-                    }
-                }
-            };
-
-            /**
-             * 获取工厂
-             */
-            function getFactory(attr) {
-                return function () {
-                    return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
-                };
-            }
-
-            /**
-             * 设置工厂
-             */
-            function setFactory(attr) {
-                return function (f) {
-                    var xhr = this.xhr;
-                    var that = this;
-                    if (attr.indexOf("on") != 0) {
-                        this[attr + "_"] = f;
-                        return;
-                    }
-                    if (funs[attr]) {
-                        xhr[attr] = function () {
-                            funs[attr](that) || f.apply(xhr, arguments);
-                        };
-                    } else {
-                        xhr[attr] = f;
-                    }
-                };
-            }
-
-            /**
-             * 钩子函数
-             */
-            function hookfun(fun) {
-                return function () {
-                    var args = [].slice.call(arguments);
-                    if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
-                        return;
-                    }
-                    console.log(this.xhr[fun].apply(this.xhr, args));
-                    return this.xhr[fun].apply(this.xhr, args);
-                };
-            }
-
-            return window._ahrealxhr;
-        }
     }]);
 
     return HappyPerformance;
 }();
+
+/**
+ * AJax
+ */
+
+
+function AjaxHook(funs) {
+    window._ahrealxhr = window._ahrealxhr || XMLHttpRequest;
+    XMLHttpRequest = function XMLHttpRequest() {
+        this.xhr = new window._ahrealxhr();
+        console.log(this);
+        for (var attr in this.xhr) {
+            var type = "";
+            try {
+                type = _typeof(this.xhr[attr]);
+            } catch (e) {
+                console.log(e);
+            }
+            if (type === "function") {
+                this[attr] = hookfun(attr);
+            } else {
+                // console.log("attr------------>" + attr)
+                // console.log(this)
+                Object.defineProperty(this, attr, {
+                    get: getFactory(attr),
+                    set: setFactory(attr)
+                });
+            }
+        }
+    };
+
+    /**
+     * 获取工厂
+     */
+    function getFactory(attr) {
+        return function () {
+            return this.hasOwnProperty(attr + "_") ? this[attr + "_"] : this.xhr[attr];
+        };
+    }
+
+    /**
+     * 设置工厂
+     */
+    function setFactory(attr) {
+        return function (f) {
+            var xhr = this.xhr;
+            var self = this;
+            // console.log(attr)            
+            if (attr.indexOf("on") != 0) {
+                console.log("--**--");
+                console.log(attr);
+                console.log("--**--");
+
+                this[attr + "_"] = f;
+                return;
+            }
+            if (funs[attr]) {
+                xhr[attr] = function () {
+                    funs[attr](self) || f.apply(xhr, arguments);
+                };
+            } else {
+                xhr[attr] = f;
+            }
+        };
+    }
+
+    /**
+     * 钩子函数
+     */
+    function hookfun(fun) {
+        return function () {
+            var args = [].slice.call(arguments);
+            if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
+                return;
+            }
+            return this.xhr[fun].apply(this.xhr, args);
+        };
+    }
+
+    return window._ahrealxhr;
+}

@@ -22,16 +22,16 @@
 
         $(function(){ 
             // 失败
-            // $.ajax({ type:'post', url:'http://mock-api.seosiwei.com/guest/order/api/order/getOrde', success: data=>{ console.log(data) } }) 
+            $.ajax({ type:'post', url:'http://mock-api.seosiwei.com/guest/order/api/order/getOrde', success: data=>{ console.log(data) } }) 
             
             // 成功
             // $.ajax({ type:'post', url:'http://mock-api.seosiwei.com/guest/order/api/order/getOrder', success: data=>{ console.log(data) } }) 
             
-            fetch('http://mock-api.seosiwei.com/guest/order/api/order/getOrde',{
-				method: 'POST',
-			}).then(function(response){
-				console.log('++++')
-			})
+            // fetch('http://mock-api.seosiwei.com/guest/order/api/order/getOrde',{
+			// 	method: 'POST',
+			// }).then(function(response){
+			// 	console.log('++++')
+			// })
         })
 
         // 脚本报错，情况
