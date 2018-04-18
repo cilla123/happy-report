@@ -7,7 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="../dist/happy-report.min.js"></script>
     <script>
-        HappyPerformance()
+        HappyPerformance({
+            outtime: 1
+        })
         HappyPerformance.otherData(function(data){
             data.userInfo = { "userId": 1, "username": "Ben", "phone": "110" }
         })
