@@ -1,6 +1,6 @@
 {
   "name": "happy-report",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "数据上报插件，页面监控，报错机制",
   "main": "index.js",
   "scripts": {
