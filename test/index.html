@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="../dist/happy-report.js"></script>
     <script>
-        new HappyPerformance()
+        HappyPerformance()
     </script>
     <!-- <link type="text/css" rel="stylesheet" href="./ll.css" /> -->
     <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
@@ -22,16 +22,17 @@
 
         $(function(){ 
             // 失败
-            $.ajax({ type:'post', url:'http://mock-api.seosiwei.com/guest/order/api/order/getOrde', success: data=>{ console.log(data) } }) 
+            $.ajax({ type:'post', url:'http://rap2api.taobao.o123123rg/app/mock/7042//test/hotel/meizho', success: data=>{ console.log(data)}})
             
             // 成功
-            // $.ajax({ type:'post', url:'http://mock-api.seosiwei.com/guest/order/api/order/getOrder', success: data=>{ console.log(data) } }) 
+            $.ajax({ type:'post', url:'http://rap2api.taobao.org/app/mock/7042//test/hotel/meizhou', success: data=>{ console.log(data)} })
             
-            // fetch('http://mock-api.seosiwei.com/guest/order/api/order/getOrde',{
-			// 	method: 'POST',
-			// }).then(function(response){
-			// 	console.log('++++')
-			// })
+            // fetch失败
+            fetch('http://rap2api.taobao.o123123rg/app/mock/7042//test/hotel/meizho',{
+				method: 'POST',
+			}).then(function(response){
+
+			})
         })
 
         // 脚本报错，情况
