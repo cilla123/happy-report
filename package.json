@@ -1,7 +1,7 @@
 {
   "name": "happy-report",
-  "version": "0.0.1",
-  "description": "数据上报插件",
+  "version": "0.0.2",
+  "description": "数据上报插件，页面监控，报错机制",
   "main": "index.js",
   "scripts": {
     "dev": "gulp",
@@ -29,8 +29,5 @@
     "gulp-rename": "^1.2.2",
     "gulp-strip-debug": "^3.0.0",
     "gulp-uglify": "^3.0.0"
-  },
-  "dependencies": {
-    "ajax-hook": "^1.8.0"
   }
 }

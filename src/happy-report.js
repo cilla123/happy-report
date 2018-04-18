@@ -160,7 +160,7 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          addData: ADDDATA
+          OTHERDATA: OTHERDATA
         }
         console.log(JSON.stringify(result))
         fn && fn(result)
@@ -412,7 +412,7 @@ function HappyPerformance(clientOptions, fn) {
             line: line,
             col: col
           };
-          defaults.t = new Date().getTime();
+          defaults.time = new Date().getTime();
           config.errorList.push(defaults)
         }, 0)
       };
@@ -501,9 +501,9 @@ if (typeof require === 'function' && typeof exports === "object" && typeof modul
   window.HappyPerformance = HappyPerformance
 }
 
-// 增加兼容Vue的配置
+// 增加兼容Vue和React的配置
 window.ERRORLIST = []
-window.ADDDATA = {}
+window.OTHERDATA = {}
 HappyPerformance.addError = (err = {}) => {
   err = {
     method: 'GET',
@@ -518,6 +518,6 @@ HappyPerformance.addError = (err = {}) => {
   ERRORLIST.push(err)
 }
 
-HappyPerformance.addData = fn => {
-  fn && fn(ADDDATA)
+HappyPerformance.otherData = fn => {
+  fn && fn(OTHERDATA)
 }
