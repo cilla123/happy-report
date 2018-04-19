@@ -154,6 +154,7 @@ function HappyPerformance(clientOptions, fn) {
         if (options.isResource) perforResource()
         if (ERRORLIST && ERRORLIST.length) config.errorList = config.errorList.concat(ERRORLIST)
         let result = {
+          time: new Date().getTime(),
           page: config.page,
           preUrl: config.preUrl,
           appVersion: config.appVersion,
@@ -490,6 +491,7 @@ function HappyPerformance(clientOptions, fn) {
       config.resourceList = ''
       config.page = location.href
       ERRORLIST = []
+      OTHERDATA = {}
     }
   } catch (err) {}
 }
