@@ -17,6 +17,7 @@ function HappyPerformance(clientOptions, fn) {
         if (options.isResource) perforResource();
         if (ERRORLIST && ERRORLIST.length) config.errorList = config.errorList.concat(ERRORLIST);
         var result = {
+          time: new Date().getTime(),
           page: config.page,
           preUrl: config.preUrl,
           appVersion: config.appVersion,
@@ -130,8 +131,11 @@ function HappyPerformance(clientOptions, fn) {
 
 
     var _Ajax = function _Ajax(funs) {
+      //  保存真正的XMLHttpRequest对象
       window._ahrealxhr = window._ahrealxhr || XMLHttpRequest;
+      // 1.覆盖全局XMLHttpRequest，代理对象
       XMLHttpRequest = function XMLHttpRequest() {
+        // 创建真正的XMLHttpRequest实例
         this.xhr = new window._ahrealxhr();
         for (var attr in this.xhr) {
           var type = "";
@@ -139,8 +143,10 @@ function HappyPerformance(clientOptions, fn) {
             type = _typeof(this.xhr[attr]);
           } catch (e) {}
           if (type === "function") {
+            // 2.代理方法
             this[attr] = hookfun(attr);
           } else {
+            // 3.代理属性
             Object.defineProperty(this, attr, {
               get: getFactory(attr),
               set: setFactory(attr)
@@ -159,6 +165,7 @@ function HappyPerformance(clientOptions, fn) {
         return function (f) {
           var xhr = this.xhr;
           var that = this;
+          // 区分是否回调属性
           if (attr.indexOf("on") != 0) {
             this[attr + "_"] = f;
             return;
@@ -176,9 +183,11 @@ function HappyPerformance(clientOptions, fn) {
       function hookfun(fun) {
         return function () {
           var args = [].slice.call(arguments);
+          // 1.如果fun拦截函数存在，则先调用拦截函数
           if (funs[fun] && funs[fun].call(this, args, this.xhr)) {
             return;
           }
+          // 2.调用真正的xhr方法
           return this.xhr[fun].apply(this.xhr, args);
         };
       }
@@ -213,7 +222,7 @@ function HappyPerformance(clientOptions, fn) {
           var defaults = Object.assign({}, errorDefault);
           defaults.time = new Date().getTime();
           defaults.resource = 'fetch';
-          defaults.msg = 'fetch请求错误';
+          defaults.msg = 'fetch request error';
           defaults.method = result.method;
           defaults.data = {
             resourceUrl: result.url,
@@ -304,7 +313,7 @@ function HappyPerformance(clientOptions, fn) {
       var defaults = Object.assign({}, errorDefault);
       defaults.time = new Date().getTime();
       defaults.resource = 'ajax';
-      defaults.msg = xhr.statusText || 'ajax请求错误';
+      defaults.msg = xhr.statusText || 'ajax request error';
       defaults.method = xhr.method;
       defaults.data = {
         resourceUrl: xhr.responseURL,
@@ -373,6 +382,7 @@ function HappyPerformance(clientOptions, fn) {
       config.resourceList = '';
       config.page = location.href;
       ERRORLIST = [];
+      OTHERDATA = {};
     };
 
     var options = {
@@ -472,11 +482,12 @@ function HappyPerformance(clientOptions, fn) {
           }
         },
         onerror: function onerror(xhr) {
+          // console.log(xhr)
           getAjaxTime('error');
           if (xhr.args) {
             xhr.method = xhr.args.method;
             xhr.responseURL = xhr.args.url;
-            xhr.statusText = 'ajax请求路径有误';
+            xhr.statusText = 'ajax request error';
           }
           ajaxResponse(xhr);
         },
