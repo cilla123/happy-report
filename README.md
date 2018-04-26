@@ -64,6 +64,8 @@ HappyPerformance.otherData(function(data){
 {
 	"page": "http://localhost:8080/test/",  // 当前页面
 	"preUrl": "",       // 上一页面
+	"type": "resource",	// 请求类型（resource：资源，action: 用户动作）
+	"actionList": ["/html", "/html/body/input", "/html", "/html", "/html/body", "/html/body/button[2]"],		// 用户操作流程，xpath
 	"appVersion": "5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36", // 当前浏览器信息
 	"errorList": [{ // 错误资源列表信息
 		"time": 1524060958497,  // 资源时间

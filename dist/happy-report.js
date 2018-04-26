@@ -24,7 +24,9 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          OTHERDATA: OTHERDATA
+          OTHERDATA: OTHERDATA,
+          actionList: config.actionList,
+          type: 'resource'
         };
         console.log(JSON.stringify(result));
         fn && fn(result);
@@ -36,6 +38,36 @@ function HappyPerformance(clientOptions, fn) {
           });
         }
       }, options.outtime);
+    };
+
+    /**
+     * 汇报客户动作
+     */
+
+
+    var reportActionData = function reportActionData(xpath) {
+      setTimeout(function () {
+        if (options.isPage) perforPage();
+        if (options.isResource) perforResource();
+        var result = {
+          time: new Date().getTime(),
+          page: config.page,
+          preUrl: config.preUrl,
+          appVersion: config.appVersion,
+          OTHERDATA: OTHERDATA,
+          xpath: xpath,
+          type: 'action'
+        };
+        console.log(JSON.stringify(result));
+        fn && fn(result);
+        if (!fn && window.fetch) {
+          fetch(options.domain, {
+            method: 'POST',
+            type: 'report-action-data',
+            body: JSON.stringify(result)
+          });
+        }
+      }, 0);
     };
 
     /**
@@ -205,6 +237,9 @@ function HappyPerformance(clientOptions, fn) {
       window.fetch = function () {
         var _arg = arguments;
         var result = fetchArg(_arg);
+        if (result.type === 'report-action-data') {
+          return _fetch.apply(this, arguments);
+        }
         if (result.type !== 'report-data') {
           clearPerformance();
           config.ajaxMsg.push(result);
@@ -300,6 +335,7 @@ function HappyPerformance(clientOptions, fn) {
           };
           defaults.time = new Date().getTime();
           config.errorList.push(defaults);
+          getLargeTime();
         }, 0);
       };
     };
@@ -363,6 +399,11 @@ function HappyPerformance(clientOptions, fn) {
       }
     };
 
+    /**
+     * 清理Performance
+     */
+
+
     var clearPerformance = function clearPerformance(type) {
       if (!window.performance && !window.performance.clearResourceTimings) return;
       if (config.haveAjax && config.haveFetch && config.ajaxLength == 0 && config.fetLength == 0) {
@@ -373,6 +414,11 @@ function HappyPerformance(clientOptions, fn) {
         clear();
       }
     };
+
+    /**
+     * 清楚参数
+     */
+
 
     var clear = function clear() {
       performance.clearResourceTimings();
@@ -385,9 +431,69 @@ function HappyPerformance(clientOptions, fn) {
       OTHERDATA = {};
     };
 
+    /**
+     * 获取XPath
+     */
+
+
+    var getXPath = function getXPath(elm) {
+      var allNodes = document.getElementsByTagName('*');
+      for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) {
+        if (elm.hasAttribute('id')) {
+          var uniqueIdCount = 0;
+          for (var n = 0; n < allNodes.length; n++) {
+            if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++;
+            if (uniqueIdCount > 1) break;
+          }
+          if (uniqueIdCount == 1) {
+            segs.unshift('//*[@id="' + elm.getAttribute('id') + '"]');
+            return segs.join('/');
+          } else {
+            return false;
+          }
+        } else {
+          for (var i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) {
+            if (sib.localName == elm.localName) i++;
+          }
+          if (i == 1) {
+            if (elm.nextElementSibling) {
+              if (elm.nextElementSibling.localName != elm.localName) {
+                segs.unshift(elm.localName.toLowerCase());
+              } else {
+                segs.unshift(elm.localName.toLowerCase() + '[' + i + ']');
+              }
+            } else {
+              segs.unshift(elm.localName.toLowerCase());
+            }
+          } else {
+            segs.unshift(elm.localName.toLowerCase() + '[' + i + ']');
+          }
+        }
+      }
+      return segs.length ? '/' + segs.join('/') : null;
+    };
+
+    /**
+     * 获取Xpath转dom元素
+     */
+
+
+    var getXpathToElem = function getXpathToElem(path) {
+      try {
+        var evaluator = new XPathEvaluator();
+        var result = evaluator.evaluate(path, document.documentElement, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        return result.singleNodeValue || '';
+      } catch (e) {
+        return '';
+      }
+    };
+
+    // 返回一些工具方法
+
+
     var options = {
       // 上报地址
-      domain: '',
+      domain: 'http://rap2api.taobao.org/app/mock/7042//example/1520581163614',
       // 脚本延迟上报时间
       outtime: 1000,
       // ajax请求时需要过滤的url信息
@@ -430,7 +536,9 @@ function HappyPerformance(clientOptions, fn) {
       // 浏览器信息
       appVersion: navigator.appVersion,
       // 当前页面
-      page: location.href
+      page: location.href,
+      // 用户动作
+      actionList: []
 
       /**
        * 默认的错误配置
@@ -446,6 +554,13 @@ function HappyPerformance(clientOptions, fn) {
     var loadTime = 0;
     var ajaxTime = 0;
     var fetchTime = 0;
+
+    // 监听页面的元素
+    document.addEventListener("click", function (e) {
+      var XPath = getXPath(e.target);
+      config.actionList.push(XPath);
+      reportActionData(XPath);
+    });
 
     // error上报
     if (options.isError) {
@@ -524,8 +639,13 @@ function HappyPerformance(clientOptions, fn) {
           config.haveAjax = true;
         }
       });
-    }
-  } catch (err) {}
+    }return {
+      getXpathToElem: getXpathToElem,
+      getXPath: getXPath
+    };
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 // 兼容处理

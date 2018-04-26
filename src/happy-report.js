@@ -6,7 +6,7 @@ function HappyPerformance(clientOptions, fn) {
 
     let options = {
       // 上报地址
-      domain: '',
+      domain: 'http://rap2api.taobao.org/app/mock/7042//example/1520581163614',
       // 脚本延迟上报时间
       outtime: 1000,
       // ajax请求时需要过滤的url信息
@@ -50,6 +50,8 @@ function HappyPerformance(clientOptions, fn) {
       appVersion: navigator.appVersion,
       // 当前页面
       page: location.href,
+      // 用户动作
+      actionList: []
     }
 
     /**
@@ -66,6 +68,13 @@ function HappyPerformance(clientOptions, fn) {
     let loadTime = 0
     let ajaxTime = 0
     let fetchTime = 0
+
+    // 监听页面的元素
+    document.addEventListener("click", function (e) {
+      const XPath = getXPath(e.target)
+      config.actionList.push(XPath)
+      reportActionData(XPath)
+    })
 
     // error上报
     if (options.isError){
@@ -162,7 +171,9 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          OTHERDATA: OTHERDATA
+          OTHERDATA: OTHERDATA,
+          actionList: config.actionList,
+          type: 'resource'
         }
         console.log(JSON.stringify(result))
         fn && fn(result)
@@ -174,6 +185,34 @@ function HappyPerformance(clientOptions, fn) {
           })
         }
       }, options.outtime)
+    }
+
+    /**
+     * 汇报客户动作
+     */
+    function reportActionData(xpath){
+      setTimeout(() => {
+        if (options.isPage) perforPage()
+        if (options.isResource) perforResource()
+        let result = {
+          time: new Date().getTime(),
+          page: config.page,
+          preUrl: config.preUrl,
+          appVersion: config.appVersion,
+          OTHERDATA: OTHERDATA,
+          xpath: xpath,
+          type: 'action'
+        }
+        console.log(JSON.stringify(result))
+        fn && fn(result)
+        if (!fn && window.fetch) {
+          fetch(options.domain, {
+            method: 'POST',
+            type: 'report-action-data',
+            body: JSON.stringify(result)
+          })
+        }
+      }, 0)
     }
 
     /**
@@ -333,6 +372,9 @@ function HappyPerformance(clientOptions, fn) {
       window.fetch = function () {
         let _arg = arguments
         let result = fetchArg(_arg)
+        if (result.type === 'report-action-data') {
+          return _fetch.apply(this, arguments)
+        }
         if (result.type !== 'report-data') {
           clearPerformance()
           config.ajaxMsg.push(result)
@@ -397,18 +439,18 @@ function HappyPerformance(clientOptions, fn) {
     function _error() {
         // 捕捉img,script,css,jsonp
         window.addEventListener('error', function (e) {
-        let defaults = Object.assign({}, errorDefault);
-        defaults.time = new Date().getTime();
-        defaults.resource = 'resource'
-        defaults.msg = e.target.localName + ' is load error';
-        defaults.method = 'GET'
-        defaults.data = {
-          target: e.target.localName,
-          type: e.type,
-          resourceUrl: e.target.currentSrc,
-        };
-        if (e.target != window) config.errorList.push(defaults)
-      }, true)
+          let defaults = Object.assign({}, errorDefault);
+          defaults.time = new Date().getTime();
+          defaults.resource = 'resource'
+          defaults.msg = e.target.localName + ' is load error';
+          defaults.method = 'GET'
+          defaults.data = {
+            target: e.target.localName,
+            type: e.type,
+            resourceUrl: e.target.currentSrc,
+          };
+          if (e.target != window) config.errorList.push(defaults)
+        }, true)
 
       // 捕捉js
       window.onerror = function (msg, _url, line, col, error) {
@@ -424,6 +466,7 @@ function HappyPerformance(clientOptions, fn) {
           };
           defaults.time = new Date().getTime();
           config.errorList.push(defaults)
+          getLargeTime()
         }, 0)
       };
     }
@@ -481,6 +524,9 @@ function HappyPerformance(clientOptions, fn) {
       }
     }
 
+    /**
+     * 清理Performance
+     */
     function clearPerformance(type) {
       if (!window.performance && !window.performance.clearResourceTimings) return;
       if (config.haveAjax && config.haveFetch && config.ajaxLength == 0 && config.fetLength == 0) {
@@ -492,6 +538,9 @@ function HappyPerformance(clientOptions, fn) {
       }
     }
 
+    /**
+     * 清楚参数
+     */
     function clear() {
       performance.clearResourceTimings();
       config.performance = {}
@@ -502,7 +551,68 @@ function HappyPerformance(clientOptions, fn) {
       ERRORLIST = []
       OTHERDATA = {}
     }
-  } catch (err) {}
+
+    /**
+     * 获取XPath
+     */
+    function getXPath(elm) {
+        let allNodes = document.getElementsByTagName('*')
+        for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) {
+          if (elm.hasAttribute('id')) {
+            let uniqueIdCount = 0
+            for (var n = 0; n < allNodes.length; n++) {
+              if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++;
+              if (uniqueIdCount > 1) break;
+            }
+            if (uniqueIdCount == 1) {
+              segs.unshift('//*[@id="' + elm.getAttribute('id') + '"]');
+              return segs.join('/');
+            } else {
+              return false
+            }
+          } else {
+            for (var i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) {
+              if (sib.localName == elm.localName) i++;
+            }
+            if (i == 1) {
+              if (elm.nextElementSibling) {
+                if (elm.nextElementSibling.localName != elm.localName) {
+                  segs.unshift(elm.localName.toLowerCase())
+                } else {
+                  segs.unshift(elm.localName.toLowerCase() + '[' + i + ']');
+                }
+              } else {
+                segs.unshift(elm.localName.toLowerCase())
+              }
+            } else {
+              segs.unshift(elm.localName.toLowerCase() + '[' + i + ']');
+            }
+          }
+        }
+        return segs.length ? '/' + segs.join('/') : null
+      }
+
+      /**
+       * 获取Xpath转dom元素
+       */
+      function getXpathToElem(path) {
+        try {
+          var evaluator = new XPathEvaluator();
+          var result = evaluator.evaluate(path, document.documentElement, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+          return result.singleNodeValue || '';
+        } catch (e) {
+          return ''
+        }
+      }
+      
+      // 返回一些工具方法
+      return {
+        getXpathToElem,
+        getXPath,
+      }
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 // 兼容处理

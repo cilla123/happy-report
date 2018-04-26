@@ -7,9 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="../dist/happy-report.js"></script>
     <script>
-        HappyPerformance({
-            outtime: 1
-        })
+        HappyPerformance()
         HappyPerformance.otherData(function(data){
             data.userInfo = { "userId": 1, "username": "Ben", "phone": "110" }
         })
@@ -19,6 +17,11 @@
 </head>
 <body>
     <h1>Happy Report Test</h1>
+
+    <button id="btn1">点击按钮</button>
+    <button class="btn btn1">点击按钮2</button> 
+    <input type="text" placeholder="测试" />
+
     <!-- 图片捕捉，失败情况 -->
     <img src="http://www.baidu222.com92929">
     <!-- js捕捉，失败情况 -->
@@ -37,7 +40,17 @@
 				method: 'POST',
 			}).then(function(response){
 
-			})
+            })
+            
+            
+            $('body').on('click', '#btn1', function () { 
+                console.log(weimingming)
+            })
+
+            $('body').on('click', '.btn1', function () { 
+                console.log(weimingming22) 
+            })
+
         })
 
         // 脚本报错，情况
