@@ -54,8 +54,14 @@ HappyPerformance.otherData(function(data){
 })
 ```
 
-## 结果图
-![结果](https://github.com/cilla123/happy-report/blob/master/assets/%E7%BB%93%E6%9E%9C.jpeg?raw=true)
+## 用户行为结果图
+![用户行为结果](https://github.com/cilla123/happy-report/blob/master/assets/%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA.png?raw=true)
+
+## 用户行为捕捉结果图
+![用户行为捕捉](https://github.com/cilla123/happy-report/blob/master/assets/%E7%94%A8%E6%88%B7%E8%A1%8C%E4%B8%BA%E6%8D%95%E6%8D%89.png?raw=true)
+
+## 提交数据结果图
+![提交数据结果](https://github.com/cilla123/happy-report/blob/master/assets/%E7%BB%93%E6%9E%9C.jpeg?raw=true)
 
 
 ## 提交的数据结构
@@ -64,7 +70,7 @@ HappyPerformance.otherData(function(data){
 {
 	"page": "http://localhost:8080/test/",  // 当前页面
 	"preUrl": "",       // 上一页面
-	"type": "resource",	// 请求类型（resource：资源，action: 用户动作）
+	"type": "resource",	// 提交数据的类型（resource：资源，action: 用户动作）
 	"actionList": ["/html", "/html/body/input", "/html", "/html", "/html/body", "/html/body/button[2]"],		// 用户操作流程，xpath
 	"appVersion": "5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36", // 当前浏览器信息
 	"errorList": [{ // 错误资源列表信息
