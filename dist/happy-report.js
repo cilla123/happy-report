@@ -493,7 +493,7 @@ function HappyPerformance(clientOptions, fn) {
 
     var options = {
       // 上报地址
-      domain: 'http://rap2api.taobao.org/app/mock/7042//example/1520581163614',
+      domain: '',
       // 脚本延迟上报时间
       outtime: 1000,
       // ajax请求时需要过滤的url信息
