@@ -63,8 +63,33 @@ HappyPerformance.otherData(function(data){
 ## 提交数据结果图
 ![提交数据结果](https://github.com/cilla123/happy-report/blob/master/assets/%E7%BB%93%E6%9E%9C.jpeg?raw=true)
 
+## 用户行为的提交数据结构
 
-## 提交的数据结构
+```json
+{
+	"time": 1525006620624,	// 点击时候的时间
+	"appVersion": "5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36",
+	"OTHERDATA": {
+		"userInfo": {
+			"userId": 1,
+			"username": "Ben",
+			"phone": "110"
+		}
+	},
+	"event": {	// 事件参数
+		"page": "http://localhost:8080/test/", // 当前页面
+		"xpath": "/html/body/button[2]",	// xpath
+		"params": {	
+			"title": "点击按钮2",	// 点击的内容
+			"preUrl": "",	// 前一个页面
+			"itemType": "button"	// 点击元素的类型
+		}
+	},
+	"type": "action"
+}
+```
+
+## 性能和错误捕捉的提交数据结构
 
 ```json
 {

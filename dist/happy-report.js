@@ -35,6 +35,9 @@ function HappyPerformance(clientOptions, fn) {
             method: 'POST',
             type: 'report-data',
             body: JSON.stringify(result)
+          }).then(function () {
+            clear();
+            clearPerformance();
           });
         }
       }, options.outtime);
@@ -45,17 +48,23 @@ function HappyPerformance(clientOptions, fn) {
      */
 
 
-    var reportActionData = function reportActionData(xpath) {
+    var reportActionData = function reportActionData(xpath, e) {
       setTimeout(function () {
         if (options.isPage) perforPage();
         if (options.isResource) perforResource();
         var result = {
           time: new Date().getTime(),
-          page: config.page,
-          preUrl: config.preUrl,
           appVersion: config.appVersion,
           OTHERDATA: OTHERDATA,
-          xpath: xpath,
+          event: {
+            page: config.page,
+            xpath: xpath,
+            params: {
+              title: getDomTxt(e),
+              preUrl: config.preUrl,
+              itemType: getDomType(e)
+            }
+          },
           type: 'action'
         };
         console.log(JSON.stringify(result));
@@ -71,11 +80,49 @@ function HappyPerformance(clientOptions, fn) {
     };
 
     /**
+     * 获取Dom类型
+     */
+
+
+    var getDomType = function getDomType(e) {
+      var obj = e.target || e.srcElement;
+      return obj.nodeName.toLocaleLowerCase() || '';
+    };
+
+    /**
+     * 获取dom的文本
+     */
+
+
+    var getDomTxt = function getDomTxt(e) {
+      var obj = e.target || e.srcElement;
+      var nodeName = obj.nodeName.toLocaleLowerCase() || '';
+      if ('body' !== nodeName && 'html' !== nodeName && '' !== nodeName) {
+        return obj.innerText || obj.value;
+      } else {
+        return handlBodyClickTxt(obj.innerText || obj.value);
+      }
+    };
+
+    /**
+     * 处理如果点击页面后，处理获取的文字
+     */
+
+
+    var handlBodyClickTxt = function handlBodyClickTxt() {
+      var e = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : "";
+      return e.length > 30 && (e = e.slice(0, 15) + "..." + e.slice(e.length - 15)), e;
+    };
+
+    /**
      * 比较onload与ajax时间长度
      */
 
 
     var getLargeTime = function getLargeTime() {
+      console.log('====================================');
+      console.log(config.haveAjax, config.haveFetch, loadTime, ajaxTime, fetchTime);
+      console.log('====================================');
       if (config.haveAjax && config.haveFetch && loadTime && ajaxTime && fetchTime) {
         console.log('loadTime:' + loadTime + ',ajaxTime:' + ajaxTime + ',fetchTime:' + fetchTime);
         reportData();
@@ -102,13 +149,13 @@ function HappyPerformance(clientOptions, fn) {
       config.performance = {
         // DNS解析时间
         dnst: timing.domainLookupEnd - timing.domainLookupStart || 0,
-        //TCP建立时间
+        // TCP建立时间
         tcpt: timing.connectEnd - timing.connectStart || 0,
         // 白屏时间  
         wit: timing.responseStart - timing.navigationStart || 0,
-        //dom渲染完成时间
+        // dom渲染完成时间
         domt: timing.domContentLoadedEventEnd - timing.navigationStart || 0,
-        //页面onload时间
+        // 页面onload时间
         lodt: timing.loadEventEnd - timing.navigationStart || 0,
         // 页面准备时间 
         radt: timing.fetchStart - timing.navigationStart || 0,
@@ -427,8 +474,8 @@ function HappyPerformance(clientOptions, fn) {
       config.preUrl = '';
       config.resourceList = '';
       config.page = location.href;
+      config.actionList = [];
       ERRORLIST = [];
-      OTHERDATA = {};
     };
 
     /**
@@ -555,20 +602,22 @@ function HappyPerformance(clientOptions, fn) {
     var ajaxTime = 0;
     var fetchTime = 0;
 
-    // 监听页面的元素
-    document.addEventListener("click", function (e) {
-      var XPath = getXPath(e.target);
-      config.actionList.push(XPath);
-      reportActionData(XPath);
-    });
-
     // error上报
     if (options.isError) {
       _error();
     }
 
-    // 绑定onload事件
-    addEventListener("load", function () {
+    // 监听页面的元素被用户点击
+    document.addEventListener("click", function (e) {
+      console.log(e);
+      var XPath = getXPath(e.target);
+      config.actionList.push(XPath);
+      reportActionData(XPath, e);
+    }, false);
+
+    // 监听页面load事件
+    window.addEventListener("load", function () {
+      console.log("!!");
       loadTime = new Date().getTime() - beginTime;
       getLargeTime();
     }, false);
