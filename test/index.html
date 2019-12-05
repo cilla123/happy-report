@@ -39,6 +39,8 @@
 
     <a href="./jump.html">跳转到jump</a>
 
+    <div id="jump-id" style="color: blue;">跳到jump</div>
+
     <!-- 图片捕捉，失败情况 -->
     <!-- <img src="http://www.baidu222.com92929"> -->
     <!-- js捕捉，失败情况 -->
@@ -59,6 +61,10 @@
                     }
                 })
             }})
+
+            $('body').on('click', '#jump-id', function() {
+                window.location.href = './jump.html'
+            })
             
             // // fetch失败
             // fetch('http://rap2api.taobao.o123123rg/app/mock/7042//test/hotel/meizho',{

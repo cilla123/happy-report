@@ -87,12 +87,12 @@ function HappyPerformance(clientOptions, fn) {
       getLargeTime()
     }, false)
 
-    // 监听页面οnbefοreunlοad事件
-    window.addEventListener('beforeunload', function() {
+    // 监听页面beforeunload事件
+    window.addEventListener('beforeunload', throttle(function(e) {
       const isInViewportElementList = sessionStorage.getItem('in_view_port_element_list')
       reportScrollActionData(isInViewportElementList[isInViewportElementList.length - 1])
       sessionStorage.removeItem('in_view_port_element_list')
-    })
+    }))
 
     // 监听页面滚动
     sessionStorage.setItem('in_view_port_element_list', [])
@@ -283,6 +283,9 @@ function HappyPerformance(clientOptions, fn) {
      * 汇报客户滚动的时候的动作
      */
     function reportScrollActionData(moduleId) {
+      console.log('==========22==========================');
+      console.log(moduleId);
+      console.log('====================================');
       setTimeout(() => {
         const markuser = getMarkUser()
         if (options.isPage) perforPage()
@@ -309,7 +312,7 @@ function HappyPerformance(clientOptions, fn) {
         if (!fn && window.fetch) {
           fetch(options.domain, {
             method: 'POST',
-            type: 'report-action-data',
+            type: 'report-scroll-data',
             body: JSON.stringify(result)
           })
         }
