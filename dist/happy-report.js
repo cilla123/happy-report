@@ -9,14 +9,81 @@ function HappyPerformance(clientOptions, fn) {
   try {
 
     /**
+     * 判断元素是否在可视区域
+     */
+    var isElementInViewport = function isElementInViewport(el) {
+      var rect = el.getBoundingClientRect();
+      return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
+    };
+
+    /**
+     * 节流
+     */
+
+
+    var throttle = function throttle(func, delay) {
+      var prev = Date.now();
+      return function () {
+        var context = this;
+        var args = arguments;
+        var now = Date.now();
+        if (now - prev >= delay) {
+          func.apply(context, args);
+          prev = Date.now();
+        }
+      };
+    };
+
+    /**
+     * 生成随机数
+     */
+
+
+    var randomString = function randomString(len) {
+      len = len || 10;
+      var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz123456789';
+      var maxPos = $chars.length;
+      var pwd = '';
+      for (var i = 0; i < len; i++) {
+        pwd = pwd + $chars.charAt(Math.floor(Math.random() * maxPos));
+      }
+      return pwd + new Date().getTime();
+    };
+
+    /**
+     * 获得markpage
+     */
+
+
+    var getMarkUser = function getMarkUser() {
+      var markUser = sessionStorage.getItem('ps_markUser') || '';
+      var result = {
+        markUser: markUser,
+        isFristIn: false
+      };
+      if (!markUser) {
+        markUser = randomString();
+        sessionStorage.setItem('ps_markUser', markUser);
+        result.markUser = markUser;
+        result.isFristIn = true;
+      }
+      return result;
+    };
+
+    /**
      * 汇报信息
      */
+
+
     var reportData = function reportData() {
       setTimeout(function () {
+        var markuser = getMarkUser();
         if (options.isPage) perforPage();
         if (options.isResource) perforResource();
         if (ERRORLIST && ERRORLIST.length) config.errorList = config.errorList.concat(ERRORLIST);
         var result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           page: config.page,
           preUrl: config.preUrl,
@@ -24,7 +91,8 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          OTHERDATA: OTHERDATA,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
           actionList: config.actionList,
           type: 'resource'
         };
@@ -44,21 +112,65 @@ function HappyPerformance(clientOptions, fn) {
     };
 
     /**
+     * 汇报客户滚动的时候的动作
+     */
+
+
+    var reportScrollActionData = function reportScrollActionData(moduleId) {
+      setTimeout(function () {
+        var markuser = getMarkUser();
+        if (options.isPage) perforPage();
+        if (options.isResource) perforResource();
+        var result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
+          time: new Date().getTime(),
+          appVersion: config.appVersion,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
+          event: {
+            page: config.page,
+            moduleId: moduleId,
+            params: {
+              preUrl: config.preUrl,
+              itemType: getDomType(e)
+            }
+          },
+          type: 'scroll-action'
+        };
+        console.log(JSON.stringify(result));
+        fn && fn(result);
+        if (!fn && window.fetch) {
+          fetch(options.domain, {
+            method: 'POST',
+            type: 'report-action-data',
+            body: JSON.stringify(result)
+          });
+        }
+      }, 0);
+    };
+
+    /**
      * 汇报客户动作
      */
 
 
     var reportActionData = function reportActionData(xpath, e) {
       setTimeout(function () {
+        var markuser = getMarkUser();
         if (options.isPage) perforPage();
         if (options.isResource) perforResource();
         var result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           appVersion: config.appVersion,
-          OTHERDATA: OTHERDATA,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
           event: {
             page: config.page,
             xpath: xpath,
+            moduleId: getDomAttribute(e, 'data-module-id'),
             params: {
               title: getDomTxt(e),
               preUrl: config.preUrl,
@@ -77,6 +189,16 @@ function HappyPerformance(clientOptions, fn) {
           });
         }
       }, 0);
+    };
+
+    /**
+     *  获取dom属性 
+     */
+
+
+    var getDomAttribute = function getDomAttribute(e, attribute) {
+      var obj = e.target || e.srcElement;
+      return obj.getAttribute(attribute) || '';
     };
 
     /**
@@ -463,7 +585,7 @@ function HappyPerformance(clientOptions, fn) {
     };
 
     /**
-     * 清楚参数
+     * 清除参数
      */
 
 
@@ -617,10 +739,31 @@ function HappyPerformance(clientOptions, fn) {
 
     // 监听页面load事件
     window.addEventListener("load", function () {
-      console.log("!!");
       loadTime = new Date().getTime() - beginTime;
       getLargeTime();
     }, false);
+
+    // 监听页面οnbefοreunlοad事件
+    window.addEventListener('beforeunload', function () {
+      var isInViewportElementList = sessionStorage.getItem('in_view_port_element_list');
+      reportScrollActionData(isInViewportElementList[isInViewportElementList.length - 1]);
+      sessionStorage.removeItem('in_view_port_element_list');
+    });
+
+    // 监听页面滚动
+    sessionStorage.setItem('in_view_port_element_list', []);
+    var sessionIsInViewportElementList = sessionStorage.getItem('in_view_port_element_list') || [];
+    window.addEventListener('scroll', throttle(function (e) {
+      var moduleList = document.querySelectorAll('[data-module-id]');
+      var arr = Array.from(moduleList);
+      arr.map(function (item, index) {
+        if (isElementInViewport(item)) {
+          var moduleId = item.getAttribute('data-module-id');
+          sessionIsInViewportElementList.push(moduleId);
+        }
+      });
+      sessionStorage.setItem('in_view_port_element_list', sessionIsInViewportElementList);
+    }, 500));
 
     // 执行fetch重写
     if (options.isResource || options.isError) {

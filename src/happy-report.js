@@ -3,7 +3,6 @@
  */
 function HappyPerformance(clientOptions, fn) {
   try {
-
     let options = {
       // 上报地址
       domain: '',
@@ -84,14 +83,35 @@ function HappyPerformance(clientOptions, fn) {
 
     // 监听页面load事件
     window.addEventListener("load", function () {
-      console.log("!!")
       loadTime = new Date().getTime() - beginTime
       getLargeTime()
     }, false)
 
+    // 监听页面οnbefοreunlοad事件
+    window.addEventListener('beforeunload', function() {
+      const isInViewportElementList = sessionStorage.getItem('in_view_port_element_list')
+      reportScrollActionData(isInViewportElementList[isInViewportElementList.length - 1])
+      sessionStorage.removeItem('in_view_port_element_list')
+    })
+
+    // 监听页面滚动
+    sessionStorage.setItem('in_view_port_element_list', [])
+    const sessionIsInViewportElementList = sessionStorage.getItem('in_view_port_element_list') || []
+    window.addEventListener('scroll', throttle(function(e) {
+      const moduleList = document.querySelectorAll('[data-module-id]')
+      const arr = Array.from(moduleList)
+      arr.map((item, index) => {
+        if (isElementInViewport(item)) {
+          const moduleId = item.getAttribute('data-module-id')
+          sessionIsInViewportElementList.push(moduleId)
+        }
+      })
+      sessionStorage.setItem('in_view_port_element_list', sessionIsInViewportElementList)
+    }, 500))
+
     // 执行fetch重写
     if (options.isResource || options.isError){
-        _fetch()
+      _fetch()
     } 
 
     //  拦截ajax
@@ -158,14 +178,80 @@ function HappyPerformance(clientOptions, fn) {
     } 
 
     /**
+     * 判断元素是否在可视区域
+     */
+    function isElementInViewport(el) {
+      var rect = el.getBoundingClientRect();
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <=
+        (window.innerWidth || document.documentElement.clientWidth)
+      )
+    }
+
+    /**
+     * 节流
+     */
+    function throttle(func, delay) {            
+      let prev = Date.now();            
+      return function() {                
+        let context = this             
+        let args = arguments
+        let now = Date.now()                
+        if (now - prev >= delay) {                    
+          func.apply(context, args)
+          prev = Date.now()         
+        }            
+      }        
+    } 
+
+    /**
+     * 生成随机数
+     */
+    function randomString(len) {
+      len = len || 10;
+      var $chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz123456789';
+      var maxPos = $chars.length;
+      var pwd = '';
+      for (let i = 0; i < len; i++) {
+          pwd = pwd + $chars.charAt(Math.floor(Math.random() * maxPos));
+      }
+      return pwd + new Date().getTime();
+    }
+
+    /**
+     * 获得markpage
+     */
+    function getMarkUser() {
+      let markUser = sessionStorage.getItem('ps_markUser') || '';
+      let result = {
+          markUser: markUser,
+          isFristIn: false,
+      };
+      if (!markUser) {
+          markUser = randomString();
+          sessionStorage.setItem('ps_markUser', markUser);
+          result.markUser = markUser;
+          result.isFristIn = true;
+      }
+      return result;
+    }
+
+    /**
      * 汇报信息
      */
     function reportData() {
       setTimeout(() => {
+        const markuser = getMarkUser()
         if (options.isPage) perforPage()
         if (options.isResource) perforResource()
         if (ERRORLIST && ERRORLIST.length) config.errorList = config.errorList.concat(ERRORLIST)
         let result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           page: config.page,
           preUrl: config.preUrl,
@@ -173,7 +259,8 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          OTHERDATA: OTHERDATA,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
           actionList: config.actionList,
           type: 'resource'
         }
@@ -193,19 +280,61 @@ function HappyPerformance(clientOptions, fn) {
     }
 
     /**
+     * 汇报客户滚动的时候的动作
+     */
+    function reportScrollActionData(moduleId) {
+      setTimeout(() => {
+        const markuser = getMarkUser()
+        if (options.isPage) perforPage()
+        if (options.isResource) perforResource()
+        let result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
+          time: new Date().getTime(),
+          appVersion: config.appVersion,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
+          event: {
+            page: config.page,
+            moduleId: moduleId,
+            params: {
+              preUrl: config.preUrl,
+              itemType: getDomType(e)
+            }
+          },
+          type: 'scroll-action'
+        }
+        console.log(JSON.stringify(result))
+        fn && fn(result)
+        if (!fn && window.fetch) {
+          fetch(options.domain, {
+            method: 'POST',
+            type: 'report-action-data',
+            body: JSON.stringify(result)
+          })
+        }
+      }, 0)
+    }
+
+    /**
      * 汇报客户动作
      */
     function reportActionData(xpath, e){
       setTimeout(() => {
+        const markuser = getMarkUser()
         if (options.isPage) perforPage()
         if (options.isResource) perforResource()
         let result = {
+          markUser: markuser.markUser,
+          isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           appVersion: config.appVersion,
-          OTHERDATA: OTHERDATA,
+          // OTHERDATA: OTHERDATA,
+          otherData: OTHERDATA,
           event: {
             page: config.page,
             xpath: xpath,
+            moduleId: getDomAttribute(e, 'data-module-id'),
             params: {
               title: getDomTxt(e),
               preUrl: config.preUrl,
@@ -224,6 +353,14 @@ function HappyPerformance(clientOptions, fn) {
           })
         }
       }, 0)
+    }
+
+    /**
+     *  获取dom属性 
+     */
+    function getDomAttribute(e, attribute) {
+      const obj = e.target || e.srcElement
+      return obj.getAttribute(attribute) || ''
     }
 
     /**
@@ -582,7 +719,7 @@ function HappyPerformance(clientOptions, fn) {
     }
 
     /**
-     * 清楚参数
+     * 清除参数
      */
     function clear() {
       performance.clearResourceTimings();
