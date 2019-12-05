@@ -117,9 +117,6 @@ function HappyPerformance(clientOptions, fn) {
 
 
     var reportScrollActionData = function reportScrollActionData(moduleId) {
-      console.log('==========22==========================');
-      console.log(moduleId);
-      console.log('====================================');
       setTimeout(function () {
         var markuser = getMarkUser();
         if (options.isPage) perforPage();
@@ -135,18 +132,17 @@ function HappyPerformance(clientOptions, fn) {
             page: config.page,
             moduleId: moduleId,
             params: {
-              preUrl: config.preUrl,
-              itemType: getDomType(e)
+              preUrl: config.preUrl
             }
           },
-          type: 'scroll-action'
+          type: 'leave-action'
         };
         console.log(JSON.stringify(result));
         fn && fn(result);
         if (!fn && window.fetch) {
           fetch(options.domain, {
             method: 'POST',
-            type: 'report-scroll-data',
+            type: 'report-leave-data',
             body: JSON.stringify(result)
           });
         }
@@ -245,9 +241,9 @@ function HappyPerformance(clientOptions, fn) {
 
 
     var getLargeTime = function getLargeTime() {
-      console.log('====================================');
-      console.log(config.haveAjax, config.haveFetch, loadTime, ajaxTime, fetchTime);
-      console.log('====================================');
+      // console.log('====================================');
+      // console.log(config.haveAjax, config.haveFetch, loadTime, ajaxTime, fetchTime);
+      // console.log('====================================');
       if (config.haveAjax && config.haveFetch && loadTime && ajaxTime && fetchTime) {
         console.log('loadTime:' + loadTime + ',ajaxTime:' + ajaxTime + ',fetchTime:' + fetchTime);
         reportData();
@@ -409,7 +405,7 @@ function HappyPerformance(clientOptions, fn) {
       window.fetch = function () {
         var _arg = arguments;
         var result = fetchArg(_arg);
-        if (result.type === 'report-action-data') {
+        if (result.type === 'report-action-data' || result.type === 'report-leave-data') {
           return _fetch.apply(this, arguments);
         }
         if (result.type !== 'report-data') {
@@ -747,11 +743,11 @@ function HappyPerformance(clientOptions, fn) {
     }, false);
 
     // 监听页面beforeunload事件
-    window.addEventListener('beforeunload', throttle(function (e) {
+    window.addEventListener('beforeunload', function (e) {
       var isInViewportElementList = sessionStorage.getItem('in_view_port_element_list');
       reportScrollActionData(isInViewportElementList[isInViewportElementList.length - 1]);
       sessionStorage.removeItem('in_view_port_element_list');
-    }));
+    });
 
     // 监听页面滚动
     sessionStorage.setItem('in_view_port_element_list', []);
