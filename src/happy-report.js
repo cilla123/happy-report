@@ -90,7 +90,8 @@ function HappyPerformance(clientOptions, fn) {
     // 监听页面beforeunload事件
     window.addEventListener('beforeunload', function(e){
       const isInViewportElementList = sessionStorage.getItem('in_view_port_element_list')
-      reportScrollActionData(isInViewportElementList[isInViewportElementList.length - 1])
+      const arr = isInViewportElementList.split(',')
+      reportScrollActionData(arr[arr.length - 1])
       sessionStorage.removeItem('in_view_port_element_list')
     })
 
@@ -107,6 +108,9 @@ function HappyPerformance(clientOptions, fn) {
         }
       })
       sessionStorage.setItem('in_view_port_element_list', sessionIsInViewportElementList)
+
+      handleReportVistorLog()
+
     }, 500))
 
     // 执行fetch重写
@@ -209,6 +213,42 @@ function HappyPerformance(clientOptions, fn) {
     } 
 
     /**
+     * 处理上报日志
+     */
+    function handleReportVistorLog() {
+      const docHeight = document.body.clientHeight
+      const winHeight = getScrollY() + window.innerHeight
+      const moduleList = document.querySelectorAll('[data-module-id]')
+      const arr = Array.from(moduleList)
+      arr.map((item, index) => {
+        let isReport = false
+        if (moduleList.length > 0 ) {
+          isReport = winHeight < arr[index].offsetTop * 1 ? false : true
+        } else {
+          isReport = winHeight < docHeight * 1 ? false : true
+        }
+        if (isReport) {
+          reportScrollActionData(arr[index].getAttribute('data-module-id'), true)
+        }
+      })
+    }
+
+    /**
+     * 获取滚动的时候的Y坐标
+     */
+    function getScrollY() {
+      let scrOfY = 0
+      if (typeof(window.pageYOffset) == "number") {
+        scrOfY = window.pageYOffset
+      } else if (document.body && (document.body.scrollLeft || document.body.scrollTop)) {
+        scrOfY = document.body.scrollTop
+      } else if (document.documentElement && (document.documentElement.scrollLeft || document.documentElement.scrollTop)) {
+        scrOfY = document.documentElement.scrollTop
+      }
+      return scrOfY
+    }
+
+    /**
      * 生成随机数
      */
     function randomString(len) {
@@ -282,7 +322,7 @@ function HappyPerformance(clientOptions, fn) {
     /**
      * 汇报客户滚动的时候的动作
      */
-    function reportScrollActionData(moduleId) {
+    function reportScrollActionData(moduleId, isScroll) {
       setTimeout(() => {
         const markuser = getMarkUser()
         if (options.isPage) perforPage()
@@ -301,7 +341,7 @@ function HappyPerformance(clientOptions, fn) {
               preUrl: config.preUrl
             }
           },
-          type: 'leave-action'
+          type: isScroll ? 'scroll-action' : 'leave-action'
         }
         console.log(JSON.stringify(result))
         fn && fn(result)

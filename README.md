@@ -101,6 +101,20 @@ HappyPerformance.otherData(function(data){
   "markUser": "1EKQPaK8Xc1575517713486",
   "otherData": {oo: {isOk: true}},
   "time": 1575534586342,
+  "type": "scroll-action"
+}
+```
+
+## 离开提交数据结构
+
+```json
+{
+  "appVersion": "5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
+  "event": {page: "http://localhost:8080/test/index.html", xpath: "/html/body/div[2]/img[2]", moduleId: "banner2",…},
+  "isFristIn": false,
+  "markUser": "1EKQPaK8Xc1575517713486",
+  "otherData": {oo: {isOk: true}},
+  "time": 1575534586342,
   "type": "leave-action"
 }
 ```
