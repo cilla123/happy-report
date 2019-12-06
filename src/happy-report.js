@@ -313,7 +313,7 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-data',
-            body: serialize(result),
+            data: serialize(result),
           }).then(() => {
             clear()
             clearPerformance()
@@ -353,7 +353,7 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-leave-data',
-            body: serialize(result),
+            data: serialize(result),
           })
         }
       }, 0)
@@ -393,7 +393,7 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-action-data',
-            body: serialize(result)
+            data: serialize(result)
           })
         }
       }, 0)
