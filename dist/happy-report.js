@@ -143,7 +143,7 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-data',
-            body: result
+            body: serialize(result)
           }).then(function () {
             clear();
             clearPerformance();
@@ -185,7 +185,7 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-leave-data',
-            body: result
+            body: serialize(result)
           });
         }
       }, 0);
@@ -227,10 +227,48 @@ function HappyPerformance(clientOptions, fn) {
             headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-action-data',
-            body: result
+            body: serialize(result)
           });
         }
       }, 0);
+    };
+
+    /**
+     * 参数序列化
+     */
+
+
+    var serialize = function serialize(obj) {
+      var query = '',
+          name = void 0,
+          value = void 0,
+          subName = void 0,
+          innerObj = void 0,
+          i = void 0,
+          p = void 0;
+      for (name in obj) {
+        value = obj[name];
+        if (value instanceof Array) {
+          for (i = 0; i < value.length; ++i) {
+            if (value[i] instanceof Object || value[i] instanceof Array) {
+              innerObj = {};
+              innerObj[name + '[' + i + ']'] = value[i];
+              (p = serialize(innerObj)) && (query += p + '&');
+            } else if (value[i] !== undefined && value[i] !== null) {
+              query += encodeURIComponent(name) + '=' + encodeURIComponent(value[i]) + '&';
+            }
+          }
+        } else if (value instanceof Object) {
+          for (subName in value) {
+            innerObj = {};
+            innerObj[name + '.' + subName] = value[subName];
+            (p = serialize(innerObj)) && (query += p + '&');
+          }
+        } else if (value !== undefined && value !== null) {
+          query += encodeURIComponent(name) + '=' + encodeURIComponent(value) + '&';
+        }
+      }
+      return query.length ? query.substr(0, query.length - 1) : query;
     };
 
     /**
