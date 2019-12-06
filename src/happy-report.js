@@ -308,9 +308,10 @@ function HappyPerformance(clientOptions, fn) {
         fn && fn(result)
         if (!fn && window.fetch) {
           fetch(options.domain, {
+            headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-data',
-            body: JSON.stringify(result)
+            body: JSON.stringify(result),
           }).then(() => {
             clear()
             clearPerformance()
@@ -347,6 +348,7 @@ function HappyPerformance(clientOptions, fn) {
         fn && fn(result)
         if (!fn && window.fetch) {
           fetch(options.domain, {
+            headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-leave-data',
             body: JSON.stringify(result)
@@ -386,6 +388,7 @@ function HappyPerformance(clientOptions, fn) {
         fn && fn(result)
         if (!fn && window.fetch) {
           fetch(options.domain, {
+            headers: { 'Content-Type': 'application/json' },
             method: 'POST',
             type: 'report-action-data',
             body: JSON.stringify(result)
