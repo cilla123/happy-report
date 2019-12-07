@@ -56,15 +56,17 @@
             // $.ajax({ type:'post', url:'http://rap2api.taobao.o123123rg/app/mock/7042//test/hotel/meizho', success: data=>{ console.log(data)}})
             
             // // 成功
-            $.ajax({ type:'post', url:'http://rap2api.taobao.org/app/mock/7042//test/hotel/meizhou', success: result=>{ 
-                console.log(result)
-                HappyPerformance.otherData(function(data){
-                    // data.userInfo = { "userId": 1, "username": "Ben", "phone": "110" }
-                    data.oo = {
-                        isOk: true
-                    }
-                })
-            }})
+            setTimeout(function() {
+                $.ajax({ type:'post', url:'http://rap2api.taobao.org/app/mock/7042//test/hotel/meizhou', success: result=>{ 
+                    console.log(result)
+                    HappyPerformance.otherData(function(data){
+                        // data.userInfo = { "userId": 1, "username": "Ben", "phone": "110" }
+                        data.oo = {
+                            isOk: true
+                        }
+                    })
+                }})
+            }, 5000)
 
             $('body').on('click', '#jump-id', function() {
                 window.location.href = './jump.html'

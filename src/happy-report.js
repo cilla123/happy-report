@@ -91,7 +91,7 @@ function HappyPerformance(clientOptions, fn) {
     window.addEventListener('beforeunload', function(e){
       const isInViewportElementList = sessionStorage.getItem('in_view_port_element_list')
       const arr = isInViewportElementList.split(',')
-      reportScrollActionData(arr[arr.length - 1])
+      reportLeaveActionData(arr[arr.length - 1])
       sessionStorage.removeItem('in_view_port_element_list')
     })
 
@@ -108,9 +108,7 @@ function HappyPerformance(clientOptions, fn) {
         }
       })
       sessionStorage.setItem('in_view_port_element_list', sessionIsInViewportElementList)
-
       handleReportVistorLog()
-
     }, 500))
 
     // 执行fetch重写
@@ -228,7 +226,7 @@ function HappyPerformance(clientOptions, fn) {
           isReport = winHeight < docHeight * 1 ? false : true
         }
         if (isReport) {
-          reportScrollActionData(arr[index].getAttribute('data-module-id'), true)
+          reportLeaveActionData(arr[index].getAttribute('data-module-id'), true)
         }
       })
     }
@@ -299,7 +297,6 @@ function HappyPerformance(clientOptions, fn) {
           errorList: config.errorList,
           performance: config.performance,
           resourceList: config.resourceList,
-          // OTHERDATA: OTHERDATA,
           otherData: OTHERDATA,
           actionList: config.actionList,
           type: 'resource'
@@ -321,9 +318,9 @@ function HappyPerformance(clientOptions, fn) {
     }
 
     /**
-     * 汇报客户滚动的时候的动作
+     * 汇报客户离开的时候的动作
      */
-    function reportScrollActionData(moduleId, isScroll) {
+    function reportLeaveActionData(moduleId, isScroll) {
       setTimeout(() => {
         const markuser = getMarkUser()
         if (options.isPage) perforPage()
@@ -333,7 +330,6 @@ function HappyPerformance(clientOptions, fn) {
           isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           appVersion: config.appVersion,
-          // OTHERDATA: OTHERDATA,
           otherData: OTHERDATA,
           event: {
             page: config.page,
@@ -370,7 +366,6 @@ function HappyPerformance(clientOptions, fn) {
           isFristIn: markuser.isFristIn,
           time: new Date().getTime(),
           appVersion: config.appVersion,
-          // OTHERDATA: OTHERDATA,
           otherData: OTHERDATA,
           event: {
             page: config.page,
